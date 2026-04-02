@@ -1,0 +1,13 @@
+# Admin dizini için ek güvenlik
+Options -Indexes
+
+# includes alt dizinine doğrudan erişimi engelle
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^includes/ - [F,L]
+</IfModule>
+
+# Sadece PHP dosyalarına erişime izin ver
+<FilesMatch "\.(?!php$)">
+    Require all denied
+</FilesMatch>

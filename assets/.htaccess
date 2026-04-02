@@ -1,0 +1,7 @@
+# Assets dizini güvenliği
+Options -Indexes
+
+# PHP dosyalarının çalışmasını engelle
+<FilesMatch "\.php$">
+    Require all denied
+</FilesMatch>

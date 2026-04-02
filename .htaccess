@@ -1,0 +1,115 @@
+# ==========================================
+# Emre Sigorta - Apache Güvenlik Yapılandırması
+# ==========================================
+
+# Dizin listelemeyi kapat
+Options -Indexes -ExecCGI
+
+# .htaccess dosyalarına erişimi engelle
+<Files ".htaccess">
+    Require all denied
+</Files>
+
+# Config ve güvenlik dosyalarına direkt erişimi engelle
+<FilesMatch "\.(php|log|sql|bak|config|ini|sh|env)$">
+    <If "%{REQUEST_URI} =~ m#^/(includes|logs|admin/includes)/#">
+        Require all denied
+    </If>
+</FilesMatch>
+
+# Log dosyalarına erişimi engelle
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # logs dizinine erişimi engelle
+    RewriteRule ^logs/ - [F,L]
+    
+    # includes dizinine doğrudan erişimi engelle
+    RewriteRule ^includes/ - [F,L]
+    
+    # admin/includes dizinine doğrudan erişimi engelle
+    RewriteRule ^admin/includes/ - [F,L]
+    
+    # Hassas dosyalara erişimi engelle
+    RewriteRule \.(env|log|sql|bak|config|ini)$ - [F,L]
+    
+    # URL'de script injection'ı engelle
+    RewriteCond %{QUERY_STRING} (<script|%3Cscript) [NC,OR]
+    RewriteCond %{QUERY_STRING} (javascript:) [NC,OR]
+    RewriteCond %{QUERY_STRING} (vbscript:) [NC,OR]
+    RewriteCond %{QUERY_STRING} (<iframe|%3Ciframe) [NC,OR]
+    RewriteCond %{QUERY_STRING} (union.*select) [NC,OR]
+    RewriteCond %{QUERY_STRING} (insert.*into) [NC,OR]
+    RewriteCond %{QUERY_STRING} (drop.*table) [NC,OR]
+    RewriteCond %{QUERY_STRING} (\.\./) [NC,OR]
+    RewriteCond %{QUERY_STRING} (%00) [NC,OR]
+    RewriteCond %{QUERY_STRING} (eval\() [NC,OR]
+    RewriteCond %{QUERY_STRING} (base64_encode) [NC,OR]
+    RewriteCond %{QUERY_STRING} (GLOBALS|_REQUEST|_GET|_POST|_FILES|_COOKIE|_SERVER|_ENV) [NC]
+    RewriteRule .* - [F,L]
+    
+    # HTTP_HOST manipülasyonunu engelle
+    RewriteCond %{HTTP_HOST} !^(localhost|www\.emresigorta\.net)$ [NC]
+    RewriteRule .* - [F,L]
+    
+    # Dosya yükleme saldırılarını engelle (PHP dosya yürütme)
+    RewriteRule ^assets/.*\.php$ - [F,L]
+</IfModule>
+
+# Güvenlik Başlıkları
+<IfModule mod_headers.c>
+    # XSS Koruması
+    Header always set X-XSS-Protection "1; mode=block"
+    
+    # Clickjacking Koruması
+    Header always set X-Frame-Options "SAMEORIGIN"
+    
+    # MIME Sniffing Koruması
+    Header always set X-Content-Type-Options "nosniff"
+    
+    # Referrer Politikası
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    
+    # İzin Politikası
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    
+    # Sunucu bilgisini gizle
+    Header unset X-Powered-By
+    Header unset Server
+    
+    # Content-Security-Policy
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'self';"
+</IfModule>
+
+# PHP güvenlik ayarları
+<IfModule mod_php.c>
+    php_flag display_errors Off
+    php_flag expose_php Off
+    php_value upload_max_filesize 10M
+    php_value post_max_size 16M
+    php_value max_execution_time 60
+    php_value max_input_time 60
+    php_flag allow_url_fopen Off
+    php_flag allow_url_include Off
+</IfModule>
+
+# Dosya türü erişim kısıtlamaları
+<FilesMatch "\.(sql|log|bak|old|tmp|swp|dist|env|config|ini)$">
+    Require all denied
+</FilesMatch>
+
+# Belirli dosya türlerine izin ver
+<FilesMatch "\.(php|html|htm|css|js|jpg|jpeg|png|gif|svg|ico|woff|woff2|ttf|eot|webp|avif)$">
+    Require all granted
+</FilesMatch>
+
+# Hata sayfaları
+ErrorDocument 403 /yenitasarim/index.php
+ErrorDocument 404 /yenitasarim/index.php
+ErrorDocument 500 /yenitasarim/index.php
+
+# ETag'i kaldır (bilgi sızıntısını önle)
+<IfModule mod_headers.c>
+    Header unset ETag
+</IfModule>
+FileETag None
