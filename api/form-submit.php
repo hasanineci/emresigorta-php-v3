@@ -218,6 +218,13 @@ $fieldLabels = [
 
 // WhatsApp mesajı oluştur
 $label = $formTypeLabels[$formType] ?? $formType;
+
+// Kampanya başvurularında inquiry sayısını artır
+if ($formType === 'kampanya-basvuru' && !empty($formData['kampanya_id'])) {
+    require_once dirname(__DIR__) . '/includes/db.php';
+    incrementCampaignInquiry((int)$formData['kampanya_id']);
+}
+
 $waMessage = "Merhaba, *{$label}* hakkında bilgi almak istiyorum.\n\n";
 
 foreach ($formData as $key => $value) {

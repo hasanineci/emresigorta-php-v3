@@ -812,7 +812,7 @@ function getAllCampaigns($filters = []) {
     if (!empty($filters['expired'])) {
         $where[] = 'end_date < CURDATE()';
     }
-    $sql = "SELECT * FROM campaigns WHERE " . implode(' AND ', $where) . " ORDER BY sort_order ASC, end_date ASC";
+    $sql = "SELECT * FROM campaigns WHERE " . implode(' AND ', $where) . " ORDER BY is_popular DESC, sort_order ASC, end_date ASC";
     $stmt = $db->prepare($sql);
     $stmt->execute($params);
     return $stmt->fetchAll();
@@ -835,21 +835,21 @@ function getCampaignBySlug($slug) {
 function saveCampaign($data, $id = 0) {
     $db = getDB();
     if ($id > 0) {
-        $stmt = $db->prepare("UPDATE campaigns SET title=?, slug=?, description=?, short_description=?, discount_text=?, icon=?, image=?, bg_color=?, features=?, link_url=?, link_text=?, start_date=?, end_date=?, is_active=?, sort_order=?, updated_at=NOW() WHERE id=?");
+        $stmt = $db->prepare("UPDATE campaigns SET title=?, slug=?, description=?, short_description=?, discount_text=?, category=?, icon=?, image=?, bg_color=?, features=?, link_url=?, link_text=?, start_date=?, end_date=?, is_active=?, is_popular=?, sort_order=?, updated_at=NOW() WHERE id=?");
         $stmt->execute([
             $data['title'], $data['slug'], $data['description'], $data['short_description'],
-            $data['discount_text'], $data['icon'], $data['image'], $data['bg_color'],
+            $data['discount_text'], $data['category'] ?? '', $data['icon'], $data['image'], $data['bg_color'],
             $data['features'], $data['link_url'], $data['link_text'],
-            $data['start_date'], $data['end_date'], $data['is_active'], $data['sort_order'], $id
+            $data['start_date'], $data['end_date'], $data['is_active'], $data['is_popular'] ?? 0, $data['sort_order'], $id
         ]);
         return $id;
     } else {
-        $stmt = $db->prepare("INSERT INTO campaigns (title, slug, description, short_description, discount_text, icon, image, bg_color, features, link_url, link_text, start_date, end_date, is_active, sort_order) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+        $stmt = $db->prepare("INSERT INTO campaigns (title, slug, description, short_description, discount_text, category, icon, image, bg_color, features, link_url, link_text, start_date, end_date, is_active, is_popular, sort_order) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
         $stmt->execute([
             $data['title'], $data['slug'], $data['description'], $data['short_description'],
-            $data['discount_text'], $data['icon'], $data['image'], $data['bg_color'],
+            $data['discount_text'], $data['category'] ?? '', $data['icon'], $data['image'], $data['bg_color'],
             $data['features'], $data['link_url'], $data['link_text'],
-            $data['start_date'], $data['end_date'], $data['is_active'], $data['sort_order']
+            $data['start_date'], $data['end_date'], $data['is_active'], $data['is_popular'] ?? 0, $data['sort_order']
         ]);
         return $db->lastInsertId();
     }
@@ -868,5 +868,17 @@ function createCampaignSlug($title) {
     $slug = preg_replace('/[^a-z0-9-]/', '-', $slug);
     $slug = preg_replace('/-+/', '-', $slug);
     return trim($slug, '-');
+}
+
+function incrementCampaignViews($id) {
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE campaigns SET views = views + 1 WHERE id = ?");
+    $stmt->execute([$id]);
+}
+
+function incrementCampaignInquiry($id) {
+    $db = getDB();
+    $stmt = $db->prepare("UPDATE campaigns SET inquiry_count = inquiry_count + 1 WHERE id = ?");
+    $stmt->execute([$id]);
 }
 ?>

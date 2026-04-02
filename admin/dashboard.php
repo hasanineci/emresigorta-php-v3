@@ -951,6 +951,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'description' => trim($_POST['campaign_description'] ?? ''),
             'short_description' => trim($_POST['campaign_short_description'] ?? ''),
             'discount_text' => trim($_POST['campaign_discount_text'] ?? ''),
+            'category' => trim($_POST['campaign_category'] ?? ''),
             'icon' => trim($_POST['campaign_icon'] ?? 'fas fa-tag'),
             'image' => '',
             'bg_color' => trim($_POST['campaign_bg_color'] ?? 'linear-gradient(135deg, #1E3A8A, #162d6b)'),
@@ -960,6 +961,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'start_date' => trim($_POST['campaign_start_date'] ?? ''),
             'end_date' => trim($_POST['campaign_end_date'] ?? ''),
             'is_active' => isset($_POST['campaign_is_active']) ? 1 : 0,
+            'is_popular' => isset($_POST['campaign_is_popular']) ? 1 : 0,
             'sort_order' => (int)($_POST['campaign_sort_order'] ?? 0),
         ];
 
@@ -3583,6 +3585,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <?php endif; ?>
                                     <div>
                                         <strong><?php echo htmlspecialchars($camp['title'], ENT_QUOTES, 'UTF-8'); ?></strong>
+                                        <?php if (!empty($camp['is_popular'])): ?><span class="badge ms-1" style="font-size:10px;background:#f97316;"><i class="fas fa-fire"></i> Popüler</span><?php endif; ?>
                                         <?php if ($isExpired): ?><span class="badge bg-danger ms-1" style="font-size:10px;">Süresi Doldu</span><?php endif; ?>
                                         <?php if ($isUpcoming): ?><span class="badge bg-info ms-1" style="font-size:10px;">Yakında</span><?php endif; ?>
                                     </div>
@@ -3644,6 +3647,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="col-md-4">
                         <label class="form-label small fw-bold">İndirim Etiketi</label>
                         <input type="text" name="campaign_discount_text" class="form-control" value="<?php echo $isCampEdit ? htmlspecialchars($editCampaign['discount_text'], ENT_QUOTES, 'UTF-8') : ''; ?>" placeholder="Örn: %25 İNDİRİM">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Kampanya Kategorisi / Branş</label>
+                        <input type="text" name="campaign_category" class="form-control" value="<?php echo $isCampEdit ? htmlspecialchars($editCampaign['category'] ?? '', ENT_QUOTES, 'UTF-8') : ''; ?>" placeholder="Örn: Trafik, Sağlık, Kasko, TSS" list="campCategoryList">
+                        <datalist id="campCategoryList">
+                            <option value="Trafik">
+                            <option value="Kasko">
+                            <option value="Sağlık">
+                            <option value="TSS">
+                            <option value="DASK">
+                            <option value="Konut">
+                            <option value="Seyahat">
+                            <option value="Evcil Hayvan">
+                            <option value="Ferdi Kaza">
+                        </datalist>
                     </div>
                     <div class="col-md-12">
                         <label class="form-label small fw-bold">Kısa Açıklama</label>
@@ -3710,6 +3728,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" name="campaign_is_active" id="campActive" <?php echo (!$isCampEdit || $editCampaign['is_active']) ? 'checked' : ''; ?>>
                             <label class="form-check-label small" for="campActive">Aktif</label>
+                        </div>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="campaign_is_popular" id="campPopular" style="background-color: var(--bs-orange, #f97316);" <?php echo ($isCampEdit && !empty($editCampaign['is_popular'])) ? 'checked' : ''; ?>>
+                            <label class="form-check-label small" for="campPopular"><i class="fas fa-fire text-warning"></i> Popüler</label>
                         </div>
                     </div>
                 </div>

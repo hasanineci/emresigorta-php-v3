@@ -375,7 +375,7 @@ require_once 'includes/header.php';
 </section>
 
 <!-- ==================== WHY US SECTION ==================== -->
-<section class="py-5 bg-pattern">
+<section class="py-5" style="background: var(--gray-100);">
     <div class="container">
         <div class="row align-items-center g-5">
             <div class="col-lg-5" data-aos="fade-right">
