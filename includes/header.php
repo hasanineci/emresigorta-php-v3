@@ -5,13 +5,8 @@ require_once __DIR__ . '/db.php';
 
 // Sayfa aktiflik kontrolü (admin panelinden pasif edilen sayfalar engellensin)
 $_currentSlug = basename($_SERVER['PHP_SELF']);
-if ($_currentSlug !== 'index.php' && !isPageActive($_currentSlug)) {
-    http_response_code(404);
-    echo '<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sayfa Bulunamadı | ' . SITE_NAME . '</title>';
-    echo '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">';
-    echo '</head><body class="bg-light d-flex align-items-center justify-content-center" style="min-height:100vh">';
-    echo '<div class="text-center"><h1 class="display-1 fw-bold text-muted">404</h1><p class="lead text-muted">Bu sayfa şu anda kullanılamamaktadır.</p>';
-    echo '<a href="' . SITE_URL . '/" class="btn btn-primary mt-3">Ana Sayfaya Dön</a></div></body></html>';
+if ($_currentSlug !== 'index.php' && $_currentSlug !== '404.php' && !isPageActive($_currentSlug)) {
+    include __DIR__ . '/../404.php';
     exit;
 }
 ?>
@@ -291,6 +286,9 @@ if ($_currentSlug !== 'index.php' && !isPageActive($_currentSlug)) {
                 <a href="tel:<?php echo SITE_PHONE_RAW; ?>" class="btn btn-phone-header">
                     <span class="btn-phone-icon"><i class="fa-solid fa-phone"></i></span>
                     <span><?php echo SITE_PHONE; ?></span>
+                </a>
+                <a href="<?php echo SITE_URL; ?>/admin/" class="btn-admin-header" title="Yönetim Paneli">
+                    <i class="fa-solid fa-user-shield"></i>
                 </a>
             </div>
         </div>

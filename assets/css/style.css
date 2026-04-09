@@ -942,6 +942,30 @@ section {
     40% { transform: rotate(-6deg); }
     50% { transform: rotate(0deg); }
 }
+
+/* Header Admin Button */
+.btn-admin-header {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--gray-100);
+    color: var(--gray-400);
+    font-size: 14px;
+    text-decoration: none;
+    transition: all .3s ease;
+    border: 1.5px solid var(--gray-200);
+}
+.btn-admin-header:hover {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(30,58,138,.25);
+}
+
 .btn-secondary {
     background: var(--secondary);
     border-color: var(--secondary);

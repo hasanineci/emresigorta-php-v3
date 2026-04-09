@@ -60,6 +60,185 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     checkCSRF();
     $action = $_POST['action'] ?? '';
     
+    // İşlem etiketleri (audit log için)
+    $_actionLabels = [
+        'toggle_page' => 'Sayfa durumu değiştirildi', 'save_page' => 'Sayfa kaydedildi', 'delete_page' => 'Sayfa silindi',
+        'save_settings' => 'Site ayarları güncellendi', 'save_user' => 'Kullanıcı kaydedildi', 'delete_user' => 'Kullanıcı silindi',
+        'update_submission_status' => 'Başvuru durumu güncellendi', 'delete_submission' => 'Başvuru silindi',
+        'save_partner' => 'İş ortağı kaydedildi', 'delete_partner' => 'İş ortağı silindi', 'toggle_partner' => 'İş ortağı durumu değiştirildi',
+        'save_partner_order' => 'İş ortağı sıralaması güncellendi',
+        'save_social' => 'Sosyal medya kaydedildi', 'delete_social' => 'Sosyal medya silindi', 'toggle_social' => 'Sosyal medya durumu değiştirildi',
+        'save_testimonial' => 'Yorum kaydedildi', 'delete_testimonial' => 'Yorum silindi', 'toggle_testimonial' => 'Yorum durumu değiştirildi',
+        'save_testimonial_order' => 'Yorum sıralaması güncellendi',
+        'save_faq_category' => 'SSS kategorisi kaydedildi', 'delete_faq_category' => 'SSS kategorisi silindi', 'toggle_faq_category' => 'SSS kategori durumu değiştirildi',
+        'save_faq' => 'SSS kaydedildi', 'delete_faq' => 'SSS silindi', 'toggle_faq_homepage' => 'SSS anasayfa durumu değiştirildi', 'toggle_faq_active' => 'SSS durumu değiştirildi',
+        'save_blog_category' => 'Blog kategorisi kaydedildi', 'delete_blog_category' => 'Blog kategorisi silindi', 'toggle_blog_category' => 'Blog kategori durumu değiştirildi',
+        'save_blog_post' => 'Blog yazısı kaydedildi', 'delete_blog_post' => 'Blog yazısı silindi', 'toggle_blog_post' => 'Blog yazı durumu değiştirildi', 'toggle_blog_featured' => 'Blog öne çıkarma değiştirildi',
+        'refresh_external_news' => 'Haberler güncellendi', 'toggle_external_news' => 'Haber durumu değiştirildi', 'delete_external_news' => 'Haber silindi',
+        'save_campaign' => 'Kampanya kaydedildi', 'delete_campaign' => 'Kampanya silindi', 'toggle_campaign' => 'Kampanya durumu değiştirildi',
+        'save_branch' => 'Şube kaydedildi', 'delete_branch' => 'Şube silindi', 'toggle_branch' => 'Şube durumu değiştirildi',
+        'upload_file' => 'Dosya yüklendi', 'delete_file' => 'Dosya silindi',
+        'revert_audit_log' => 'İşlem geri alındı',
+    ];
+    $_actionTableMap = [
+        'toggle_page' => 'pages', 'save_page' => 'pages', 'delete_page' => 'pages',
+        'save_settings' => 'site_settings', 'save_user' => 'admins', 'delete_user' => 'admins',
+        'update_submission_status' => 'form_submissions', 'delete_submission' => 'form_submissions',
+        'save_partner' => 'partners', 'delete_partner' => 'partners', 'toggle_partner' => 'partners', 'save_partner_order' => 'partners',
+        'save_social' => 'social_media', 'delete_social' => 'social_media', 'toggle_social' => 'social_media',
+        'save_testimonial' => 'testimonials', 'delete_testimonial' => 'testimonials', 'toggle_testimonial' => 'testimonials', 'save_testimonial_order' => 'testimonials',
+        'save_faq_category' => 'faq_categories', 'delete_faq_category' => 'faq_categories', 'toggle_faq_category' => 'faq_categories',
+        'save_faq' => 'faqs', 'delete_faq' => 'faqs', 'toggle_faq_homepage' => 'faqs', 'toggle_faq_active' => 'faqs',
+        'save_blog_category' => 'blog_categories', 'delete_blog_category' => 'blog_categories', 'toggle_blog_category' => 'blog_categories',
+        'save_blog_post' => 'blog_posts', 'delete_blog_post' => 'blog_posts', 'toggle_blog_post' => 'blog_posts', 'toggle_blog_featured' => 'blog_posts',
+        'refresh_external_news' => 'external_news', 'toggle_external_news' => 'external_news', 'delete_external_news' => 'external_news',
+        'save_campaign' => 'campaigns', 'delete_campaign' => 'campaigns', 'toggle_campaign' => 'campaigns',
+        'save_branch' => 'branches', 'delete_branch' => 'branches', 'toggle_branch' => 'branches',
+        'upload_file' => 'uploads', 'delete_file' => 'uploads',
+        'revert_audit_log' => 'admin_audit_log',
+    ];
+    
+    // Silme işlemlerinde eski veriyi önceden kaydet
+    $_oldData = null;
+    $_recordId = null;
+    try {
+        $db_log = getDB();
+        if ($action === 'delete_page' && ($pid = (int)($_POST['page_id'] ?? 0))) {
+            $_recordId = $pid;
+            $s = $db_log->prepare("SELECT * FROM pages WHERE id = ?"); $s->execute([$pid]); $_oldData = $s->fetch(PDO::FETCH_ASSOC);
+        } elseif ($action === 'delete_user' && ($uid = (int)($_POST['user_id'] ?? 0))) {
+            $_recordId = $uid;
+            $s = $db_log->prepare("SELECT id, username, full_name, email, role FROM admins WHERE id = ?"); $s->execute([$uid]); $_oldData = $s->fetch(PDO::FETCH_ASSOC);
+        } elseif ($action === 'delete_submission' && ($sid = (int)($_POST['submission_id'] ?? 0))) {
+            $_recordId = $sid;
+            $s = $db_log->prepare("SELECT * FROM form_submissions WHERE id = ?"); $s->execute([$sid]); $_oldData = $s->fetch(PDO::FETCH_ASSOC);
+        } elseif ($action === 'delete_partner' && ($pid = (int)($_POST['partner_id'] ?? 0))) {
+            $_recordId = $pid;
+            $s = $db_log->prepare("SELECT * FROM partners WHERE id = ?"); $s->execute([$pid]); $_oldData = $s->fetch(PDO::FETCH_ASSOC);
+        } elseif ($action === 'delete_social' && ($sid = (int)($_POST['social_id'] ?? 0))) {
+            $_recordId = $sid;
+            $s = $db_log->prepare("SELECT * FROM social_media WHERE id = ?"); $s->execute([$sid]); $_oldData = $s->fetch(PDO::FETCH_ASSOC);
+        } elseif ($action === 'delete_testimonial' && ($tid = (int)($_POST['testimonial_id'] ?? 0))) {
+            $_recordId = $tid;
+            $s = $db_log->prepare("SELECT * FROM testimonials WHERE id = ?"); $s->execute([$tid]); $_oldData = $s->fetch(PDO::FETCH_ASSOC);
+        } elseif ($action === 'delete_faq_category' && ($cid = (int)($_POST['category_id'] ?? 0))) {
+            $_recordId = $cid;
+            $s = $db_log->prepare("SELECT * FROM faq_categories WHERE id = ?"); $s->execute([$cid]); $_oldData = $s->fetch(PDO::FETCH_ASSOC);
+        } elseif ($action === 'delete_faq' && ($fid = (int)($_POST['faq_id'] ?? 0))) {
+            $_recordId = $fid;
+            $s = $db_log->prepare("SELECT * FROM faqs WHERE id = ?"); $s->execute([$fid]); $_oldData = $s->fetch(PDO::FETCH_ASSOC);
+        } elseif ($action === 'delete_blog_category' && ($cid = (int)($_POST['category_id'] ?? 0))) {
+            $_recordId = $cid;
+            $s = $db_log->prepare("SELECT * FROM blog_categories WHERE id = ?"); $s->execute([$cid]); $_oldData = $s->fetch(PDO::FETCH_ASSOC);
+        } elseif ($action === 'delete_blog_post' && ($pid = (int)($_POST['post_id'] ?? 0))) {
+            $_recordId = $pid;
+            $s = $db_log->prepare("SELECT * FROM blog_posts WHERE id = ?"); $s->execute([$pid]); $_oldData = $s->fetch(PDO::FETCH_ASSOC);
+        } elseif ($action === 'delete_external_news' && ($nid = (int)($_POST['news_id'] ?? 0))) {
+            $_recordId = $nid;
+            $s = $db_log->prepare("SELECT * FROM external_news WHERE id = ?"); $s->execute([$nid]); $_oldData = $s->fetch(PDO::FETCH_ASSOC);
+        } elseif ($action === 'delete_campaign' && ($cid = (int)($_POST['campaign_id'] ?? 0))) {
+            $_recordId = $cid;
+            $s = $db_log->prepare("SELECT * FROM campaigns WHERE id = ?"); $s->execute([$cid]); $_oldData = $s->fetch(PDO::FETCH_ASSOC);
+        } elseif ($action === 'delete_branch' && ($bid = (int)($_POST['branch_id'] ?? 0))) {
+            $_recordId = $bid;
+            $s = $db_log->prepare("SELECT * FROM branches WHERE id = ?"); $s->execute([$bid]); $_oldData = $s->fetch(PDO::FETCH_ASSOC);
+        } elseif ($action === 'delete_file') {
+            $_oldData = ['file_path' => $_POST['file_path'] ?? ''];
+        }
+        // Düzenleme işlemlerinde eski veriyi kaydet
+        elseif ($action === 'save_page' && ($pid = (int)($_POST['page_id'] ?? 0)) && $pid > 0) {
+            $_recordId = $pid;
+            $s = $db_log->prepare("SELECT * FROM pages WHERE id = ?"); $s->execute([$pid]); $_oldData = $s->fetch(PDO::FETCH_ASSOC);
+        } elseif ($action === 'save_user' && ($uid = (int)($_POST['user_id'] ?? 0)) && $uid > 0) {
+            $_recordId = $uid;
+            $s = $db_log->prepare("SELECT id, username, full_name, email, role FROM admins WHERE id = ?"); $s->execute([$uid]); $_oldData = $s->fetch(PDO::FETCH_ASSOC);
+        } elseif ($action === 'save_partner' && ($pid = (int)($_POST['partner_id'] ?? 0)) && $pid > 0) {
+            $_recordId = $pid;
+            $s = $db_log->prepare("SELECT * FROM partners WHERE id = ?"); $s->execute([$pid]); $_oldData = $s->fetch(PDO::FETCH_ASSOC);
+        } elseif ($action === 'save_campaign' && ($cid = (int)($_POST['campaign_id'] ?? 0)) && $cid > 0) {
+            $_recordId = $cid;
+            $s = $db_log->prepare("SELECT * FROM campaigns WHERE id = ?"); $s->execute([$cid]); $_oldData = $s->fetch(PDO::FETCH_ASSOC);
+        } elseif ($action === 'save_blog_post' && ($pid = (int)($_POST['post_id'] ?? 0)) && $pid > 0) {
+            $_recordId = $pid;
+            $s = $db_log->prepare("SELECT * FROM blog_posts WHERE id = ?"); $s->execute([$pid]); $_oldData = $s->fetch(PDO::FETCH_ASSOC);
+        } elseif ($action === 'save_branch' && ($bid = (int)($_POST['branch_id'] ?? 0)) && $bid > 0) {
+            $_recordId = $bid;
+            $s = $db_log->prepare("SELECT * FROM branches WHERE id = ?"); $s->execute([$bid]); $_oldData = $s->fetch(PDO::FETCH_ASSOC);
+        } elseif ($action === 'save_social' && ($sid = (int)($_POST['social_id'] ?? 0)) && $sid > 0) {
+            $_recordId = $sid;
+            $s = $db_log->prepare("SELECT * FROM social_media WHERE id = ?"); $s->execute([$sid]); $_oldData = $s->fetch(PDO::FETCH_ASSOC);
+        } elseif ($action === 'save_testimonial' && ($tid = (int)($_POST['testimonial_id'] ?? 0)) && $tid > 0) {
+            $_recordId = $tid;
+            $s = $db_log->prepare("SELECT * FROM testimonials WHERE id = ?"); $s->execute([$tid]); $_oldData = $s->fetch(PDO::FETCH_ASSOC);
+        } elseif ($action === 'save_faq' && ($fid = (int)($_POST['faq_id'] ?? 0)) && $fid > 0) {
+            $_recordId = $fid;
+            $s = $db_log->prepare("SELECT * FROM faqs WHERE id = ?"); $s->execute([$fid]); $_oldData = $s->fetch(PDO::FETCH_ASSOC);
+        } elseif ($action === 'save_faq_category' && ($cid = (int)($_POST['category_id'] ?? 0)) && $cid > 0) {
+            $_recordId = $cid;
+            $s = $db_log->prepare("SELECT * FROM faq_categories WHERE id = ?"); $s->execute([$cid]); $_oldData = $s->fetch(PDO::FETCH_ASSOC);
+        } elseif ($action === 'save_blog_category' && ($cid = (int)($_POST['category_id'] ?? 0)) && $cid > 0) {
+            $_recordId = $cid;
+            $s = $db_log->prepare("SELECT * FROM blog_categories WHERE id = ?"); $s->execute([$cid]); $_oldData = $s->fetch(PDO::FETCH_ASSOC);
+        } elseif ($action === 'save_settings' && !empty($_POST['settings'])) {
+            // Ayar değişikliklerinde eski değerleri kaydet
+            $_oldData = [];
+            foreach (array_keys($_POST['settings']) as $sk) {
+                $safeSk = preg_replace('/[^a-z0-9_]/', '', $sk);
+                if ($safeSk) {
+                    $s = $db_log->prepare("SELECT setting_value FROM site_settings WHERE setting_key = ?"); $s->execute([$safeSk]);
+                    $row = $s->fetch(PDO::FETCH_ASSOC);
+                    if ($row) $_oldData[$safeSk] = $row['setting_value'];
+                }
+            }
+        }
+        // Toggle işlemlerinde eski durumu kaydet (geri alma için)
+        $toggleMap = [
+            'toggle_page' => ['pages', 'page_id', 'is_active'],
+            'toggle_partner' => ['partners', 'partner_id', 'is_active'],
+            'toggle_social' => ['social_media', 'social_id', 'is_active'],
+            'toggle_testimonial' => ['testimonials', 'testimonial_id', 'is_active'],
+            'toggle_faq_homepage' => ['faqs', 'faq_id', 'show_on_homepage'],
+            'toggle_faq_active' => ['faqs', 'faq_id', 'is_active'],
+            'toggle_faq_category' => ['faq_categories', 'category_id', 'is_active'],
+            'toggle_blog_post' => ['blog_posts', 'post_id', 'is_active'],
+            'toggle_blog_featured' => ['blog_posts', 'post_id', 'is_featured'],
+            'toggle_blog_category' => ['blog_categories', 'category_id', 'is_active'],
+            'toggle_external_news' => ['external_news', 'news_id', 'is_active'],
+            'toggle_campaign' => ['campaigns', 'campaign_id', 'is_active'],
+            'toggle_branch' => ['branches', 'branch_id', 'is_active'],
+        ];
+        if (isset($toggleMap[$action])) {
+            [$tbl, $idParam, $col] = $toggleMap[$action];
+            $tid = (int)($_POST[$idParam] ?? 0);
+            if ($tid > 0) {
+                $_recordId = $tid;
+                $s = $db_log->prepare("SELECT `$col` FROM `$tbl` WHERE id = ?"); $s->execute([$tid]);
+                $row = $s->fetch(PDO::FETCH_ASSOC);
+                if ($row) $_oldData = $row;
+            }
+        }
+    } catch (Exception $e) { /* Loglama hatası asıl işlemi engellemesin */ }
+    
+    // Shutdown function: exit çağrılsa bile loglama çalışır
+    $_logDone = false;
+    register_shutdown_function(function() use ($action, $_actionLabels, $_actionTableMap, &$_oldData, &$_recordId, &$_logDone) {
+        if ($_logDone || !$action || !isset($_actionLabels[$action])) return;
+        $_logDone = true;
+        $_safePost = $_POST;
+        unset($_safePost['password'], $_safePost['_csrf_token']);
+        if (!$_recordId) {
+            $_recordId = (int)($_POST['page_id'] ?? $_POST['user_id'] ?? $_POST['partner_id'] ?? $_POST['campaign_id'] ?? $_POST['branch_id'] ?? $_POST['post_id'] ?? $_POST['submission_id'] ?? $_POST['social_id'] ?? $_POST['testimonial_id'] ?? $_POST['category_id'] ?? $_POST['faq_id'] ?? $_POST['news_id'] ?? 0);
+        }
+        logAdminAction(
+            $action,
+            $_actionLabels[$action],
+            $_actionTableMap[$action] ?? null,
+            $_recordId ?: null,
+            $_oldData,
+            $_safePost
+        );
+    });
+    
     // Sayfa aktif/pasif toggle
     if ($action === 'toggle_page') {
         $pageId = (int)($_POST['page_id'] ?? 0);
@@ -1041,10 +1220,207 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     }
+
+    // ==================== İşlem Geri Alma ====================
+    if ($action === 'revert_audit_log') {
+        $logId = (int)($_POST['log_id'] ?? 0);
+        if ($logId > 0 && hasRole('yonetici')) {
+            try {
+                $result = revertAuditLog($logId);
+                $_recordId = $logId;
+                if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['success' => true, 'message' => $result['message']]); exit; }
+                $message = $result['message']; $messageType = 'success';
+            } catch (Exception $e) {
+                if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['success' => false, 'message' => $e->getMessage()]); exit; }
+                $message = $e->getMessage(); $messageType = 'danger';
+            }
+        } else {
+            if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['success' => false, 'message' => 'Yetkiniz yok veya geçersiz kayıt.']); exit; }
+        }
+    }
+
+    // ==================== Şubeler ====================
+    if ($action === 'save_branch') {
+        $branchId = (int)($_POST['branch_id'] ?? 0);
+        $branchData = [
+            'name' => trim($_POST['branch_name'] ?? ''),
+            'city' => trim($_POST['branch_city'] ?? ''),
+            'address' => trim($_POST['branch_address'] ?? ''),
+            'phone' => trim($_POST['branch_phone'] ?? ''),
+            'phone_alt' => trim($_POST['branch_phone_alt'] ?? ''),
+            'email' => trim($_POST['branch_email'] ?? ''),
+            'maps_embed' => trim($_POST['branch_maps_embed'] ?? ''),
+            'maps_link' => trim($_POST['branch_maps_link'] ?? ''),
+            'working_hours' => trim($_POST['branch_working_hours'] ?? ''),
+            'is_headquarters' => isset($_POST['branch_is_headquarters']) ? 1 : 0,
+            'is_active' => isset($_POST['branch_is_active']) ? 1 : 0,
+            'sort_order' => (int)($_POST['branch_sort_order'] ?? 0),
+        ];
+
+        if (empty($branchData['name'])) {
+            $message = 'Şube adı zorunludur.';
+            $messageType = 'danger';
+        } else {
+            try {
+                $newId = saveBranch($branchData, $branchId);
+                $_recordId = $branchId ?: $newId;
+                $_SESSION['admin_message'] = $branchId > 0 ? 'Şube güncellendi.' : 'Yeni şube eklendi.';
+                $_SESSION['admin_message_type'] = 'success';
+                header('Location: ' . SITE_URL . '/admin/dashboard.php?page=subeler');
+                exit;
+            } catch (Exception $e) {
+                $message = 'Kaydetme hatası: ' . $e->getMessage();
+                $messageType = 'danger';
+            }
+        }
+    }
+
+    if ($action === 'delete_branch') {
+        $branchId = (int)($_POST['branch_id'] ?? 0);
+        if ($branchId > 0) {
+            try {
+                deleteBranch($branchId);
+                if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['success' => true, 'message' => 'Şube silindi.']); exit; }
+                $message = 'Şube silindi.';
+                $messageType = 'success';
+            } catch (Exception $e) {
+                if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['success' => false, 'message' => 'Silme hatası.']); exit; }
+                $message = 'Silme hatası.';
+                $messageType = 'danger';
+            }
+        }
+    }
+
+    if ($action === 'toggle_branch') {
+        $branchId = (int)($_POST['branch_id'] ?? 0);
+        $status = (int)($_POST['is_active'] ?? 0);
+        if ($branchId > 0) {
+            try {
+                $db = getDB();
+                $stmt = $db->prepare("UPDATE branches SET is_active = ?, updated_at = NOW() WHERE id = ?");
+                $stmt->execute([$status, $branchId]);
+                if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['success' => true, 'message' => 'Durum güncellendi.']); exit; }
+            } catch (Exception $e) {
+                if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['success' => false, 'message' => 'Hata oluştu.']); exit; }
+            }
+        }
+    }
+
+    // ==================== Dosya Yönetimi ====================
+    if ($action === 'upload_file' && hasRole('personel')) {
+        $uploadDir = sanitizeInput($_POST['upload_dir'] ?? '');
+        $allowedDirs = ['campaigns', 'partners', 'ruhsat'];
+        $allowedExts = ['jpg', 'jpeg', 'png', 'webp', 'svg', 'pdf', 'gif'];
+        $maxSize = 5 * 1024 * 1024; // 5MB
+
+        if (!in_array($uploadDir, $allowedDirs)) {
+            $message = 'Geçersiz klasör.'; $messageType = 'danger';
+        } elseif (empty($_FILES['upload_file']['name'])) {
+            $message = 'Lütfen bir dosya seçin.'; $messageType = 'danger';
+        } else {
+            $file = $_FILES['upload_file'];
+            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            $origName = pathinfo($file['name'], PATHINFO_FILENAME);
+            // Sanitize filename
+            $safeName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $origName);
+            $safeName = substr($safeName, 0, 80);
+
+            if (!in_array($ext, $allowedExts)) {
+                $message = 'Bu dosya türüne izin verilmiyor. İzin verilen: ' . implode(', ', $allowedExts); $messageType = 'danger';
+            } elseif ($file['size'] > $maxSize) {
+                $message = 'Dosya boyutu 5MB\'dan büyük olamaz.'; $messageType = 'danger';
+            } elseif ($file['error'] !== UPLOAD_ERR_OK) {
+                $message = 'Dosya yükleme hatası.'; $messageType = 'danger';
+            } else {
+                $targetDir = __DIR__ . '/../uploads/' . $uploadDir . '/';
+                if (!is_dir($targetDir)) { mkdir($targetDir, 0755, true); }
+                $targetName = $safeName . '_' . time() . '.' . $ext;
+                $targetPath = $targetDir . $targetName;
+
+                if (move_uploaded_file($file['tmp_name'], $targetPath)) {
+                    $message = 'Dosya başarıyla yüklendi: ' . $targetName; $messageType = 'success';
+                } else {
+                    $message = 'Dosya yüklenirken hata oluştu.'; $messageType = 'danger';
+                }
+            }
+        }
+        $currentPage = 'dosyalar';
+    }
+
+    if ($action === 'delete_file' && hasRole('personel')) {
+        $filePath = $_POST['file_path'] ?? '';
+        $allowedDirs = ['campaigns', 'partners', 'ruhsat'];
+        $uploadsBase = realpath(__DIR__ . '/../uploads');
+
+        // Security: resolve real path and ensure it's within uploads/
+        $fullPath = realpath(__DIR__ . '/../' . $filePath);
+        if ($fullPath && strpos($fullPath, $uploadsBase) === 0 && is_file($fullPath)) {
+            // Check the file is in an allowed subdirectory
+            $relativePath = substr($fullPath, strlen($uploadsBase) + 1);
+            $dirPart = explode(DIRECTORY_SEPARATOR, $relativePath)[0] ?? '';
+            // Normalize for Unix/Windows
+            $dirPart = str_replace('/', '', str_replace('\\', '', $dirPart));
+            // Re-check against cleaned allowed dirs
+            $dirPartClean = strtolower(trim($dirPart));
+            $allowed = false;
+            foreach ($allowedDirs as $ad) {
+                if ($dirPartClean === $ad) { $allowed = true; break; }
+            }
+
+            if ($allowed && unlink($fullPath)) {
+                $message = 'Dosya silindi.'; $messageType = 'success';
+            } else {
+                $message = 'Dosya silinemedi veya izin yok.'; $messageType = 'danger';
+            }
+        } else {
+            $message = 'Geçersiz dosya yolu.'; $messageType = 'danger';
+        }
+        $currentPage = 'dosyalar';
+    }
+
+    // Non-exit durumda shutdown'dan önce logla (çift loglama önlenir)
+    if ($action && isset($_actionLabels[$action]) && !$_logDone) {
+        $_logDone = true;
+        $_safePost = $_POST;
+        unset($_safePost['password'], $_safePost['_csrf_token']);
+        if (!$_recordId) {
+            $_recordId = (int)($_POST['page_id'] ?? $_POST['user_id'] ?? $_POST['partner_id'] ?? $_POST['campaign_id'] ?? $_POST['branch_id'] ?? $_POST['post_id'] ?? $_POST['submission_id'] ?? $_POST['social_id'] ?? $_POST['testimonial_id'] ?? $_POST['category_id'] ?? $_POST['faq_id'] ?? $_POST['news_id'] ?? 0);
+        }
+        logAdminAction(
+            $action,
+            $_actionLabels[$action],
+            $_actionTableMap[$action] ?? null,
+            $_recordId ?: null,
+            $_oldData,
+            $_safePost
+        );
+    }
 }
 
 // ==================== Veri Çek ====================
 $pages = getAllPages();
+
+// --- Parent-child ağaç yapısı oluşturucu ---
+function buildPageTree($pages) {
+    $tree = [];
+    $refs = [];
+    foreach ($pages as &$p) {
+        $p['children'] = [];
+        $refs[$p['id']] = &$p;
+    }
+    unset($p);
+    foreach ($refs as $id => &$p) {
+        if (!empty($p['parent_id']) && isset($refs[$p['parent_id']])) {
+            $refs[$p['parent_id']]['children'][] = &$p;
+        } else {
+            $tree[] = &$p;
+        }
+    }
+    unset($p);
+    return $tree;
+}
+
+$pageTree = buildPageTree($pages);
 $allSettings = getAllSettings();
 
 // Sayfa içeriğinden sadece content kısmını ayıkla
@@ -1306,37 +1682,92 @@ if (!empty($_SESSION['admin_message'])) {
                             <th style="font-size: 13px; text-align: center; width: 140px;">İşlem</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <?php foreach ($pages as $idx => $pg): ?>
-                        <tr id="page-row-<?php echo $pg['id']; ?>">
-                            <td style="font-size: 13px;"><?php echo $pg['sort_order']; ?></td>
-                            <td style="font-size: 13px;" class="fw-semibold"><?php echo htmlspecialchars($pg['title'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td style="font-size: 13px;"><code><?php echo htmlspecialchars($pg['slug'], ENT_QUOTES, 'UTF-8'); ?></code></td>
-                            <td><span class="badge bg-secondary-subtle text-secondary" style="font-size: 11px;"><?php echo htmlspecialchars($pg['category'] ?? 'genel', ENT_QUOTES, 'UTF-8'); ?></span></td>
-                            <td>
-                                <?php if (!empty($pg['seo_title'])): ?>
-                                    <span class="badge bg-success-subtle text-success" style="font-size: 11px;"><i class="fas fa-check"></i> SEO</span>
-                                <?php else: ?>
-                                    <span class="badge bg-warning-subtle text-warning" style="font-size: 11px;"><i class="fas fa-minus"></i> Eksik</span>
-                                <?php endif; ?>
-                            </td>
-                            <td class="text-center">
-                                <div class="form-check form-switch d-flex justify-content-center">
-                                    <input class="form-check-input toggle-page" type="checkbox" data-id="<?php echo $pg['id']; ?>" <?php echo $pg['is_active'] ? 'checked' : ''; ?> style="cursor: pointer; width: 40px; height: 20px;">
-                                </div>
-                            </td>
-                            <td class="text-center">
-                                <a href="<?php echo SITE_URL . '/' . htmlspecialchars($pg['slug'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Önizle"><i class="fas fa-eye"></i></a>
-                                <a href="?page=sayfa-duzenle&id=<?php echo $pg['id']; ?>" class="btn btn-sm btn-outline-primary py-0 px-2" title="Düzenle"><i class="fas fa-edit"></i></a>
-                                <button class="btn btn-sm btn-outline-danger py-0 px-2 btn-delete-page" data-id="<?php echo $pg['id']; ?>" data-title="<?php echo htmlspecialchars($pg['title'], ENT_QUOTES, 'UTF-8'); ?>" title="Sil"><i class="fas fa-trash"></i></button>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
+                    <tbody id="pages-tbody">
+                        <?php
+                        // --- Hiyerarşik tablo satırı oluşturucu ---
+                        function renderPageRows($tree, $level = 0, $parent = 0) {
+                            foreach ($tree as $pg) {
+                                $indent = str_repeat('&nbsp;&nbsp;&nbsp;&nbsp;', $level);
+                                echo '<tr id="page-row-' . $pg['id'] . '" data-id="' . $pg['id'] . '" data-parent="' . $parent . '">';
+                                echo '<td style="font-size: 13px;">' . $pg['sort_order'] . '</td>';
+                                $levelAttr = ' data-level="' . $level . '"';
+                                $subLabel = $level > 0 ? '<span class="sub-label">alt başlık</span>' : '';
+                                echo '<td style="font-size: 13px;" class="fw-semibold"><div class="page-title-cell"' . $levelAttr . '>' . htmlspecialchars($pg['title'], ENT_QUOTES, 'UTF-8') . $subLabel . '</div></td>';
+                                echo '<td style="font-size: 13px;"><code>' . htmlspecialchars($pg['slug'], ENT_QUOTES, 'UTF-8') . '</code></td>';
+                                echo '<td><span class="badge bg-secondary-subtle text-secondary" style="font-size: 11px;">' . htmlspecialchars($pg['category'] ?? 'genel', ENT_QUOTES, 'UTF-8') . '</span></td>';
+                                echo '<td>';
+                                if (!empty($pg['seo_title'])) {
+                                    echo '<span class="badge bg-success-subtle text-success" style="font-size: 11px;"><i class="fas fa-check"></i> SEO</span>';
+                                } else {
+                                    echo '<span class="badge bg-warning-subtle text-warning" style="font-size: 11px;"><i class="fas fa-minus"></i> Eksik</span>';
+                                }
+                                echo '</td>';
+                                echo '<td class="text-center">';
+                                echo '<div class="form-check form-switch d-flex justify-content-center">';
+                                echo '<input class="form-check-input toggle-page" type="checkbox" data-id="' . $pg['id'] . '"' . ($pg['is_active'] ? ' checked' : '') . ' style="cursor: pointer; width: 40px; height: 20px;">';
+                                echo '</div>';
+                                echo '</td>';
+                                echo '<td class="text-center">';
+                                echo '<a href="' . SITE_URL . '/' . htmlspecialchars($pg['slug'], ENT_QUOTES, 'UTF-8') . '" target="_blank" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Önizle"><i class="fas fa-eye"></i></a>';
+                                echo '<a href="?page=sayfa-duzenle&id=' . $pg['id'] . '" class="btn btn-sm btn-outline-primary py-0 px-2" title="Düzenle"><i class="fas fa-edit"></i></a>';
+                                echo '<button class="btn btn-sm btn-outline-danger py-0 px-2 btn-delete-page" data-id="' . $pg['id'] . '" data-title="' . htmlspecialchars($pg['title'], ENT_QUOTES, 'UTF-8') . '" title="Sil"><i class="fas fa-trash"></i></button>';
+                                echo '</td>';
+                                echo '</tr>';
+                                if (!empty($pg['children'])) {
+                                    renderPageRows($pg['children'], $level + 1, $pg['id']);
+                                }
+                            }
+                        }
+                        renderPageRows($pageTree);
+                        ?>
                     </tbody>
                 </table>
+
+            <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+            <script>
+            // --- Drag & drop ve AJAX ile sıralama kaydetme ---
+            document.addEventListener('DOMContentLoaded', function () {
+                var tbody = document.getElementById('pages-tbody');
+                if (tbody && window.Sortable) {
+                    new Sortable(tbody, {
+                        animation: 180,
+                        handle: 'td',
+                        ghostClass: 'sortable-ghost',
+                        onEnd: function (evt) {
+                            // Sıralama sonrası yeni parent ve order bilgilerini topla
+                            var rows = tbody.querySelectorAll('tr');
+                            var data = [];
+                            rows.forEach(function (tr, idx) {
+                                data.push({
+                                    id: tr.getAttribute('data-id'),
+                                    parent_id: tr.getAttribute('data-parent') || 0,
+                                    sort_order: idx + 1
+                                });
+                            });
+                            // AJAX ile backend'e gönder
+                            fetch('api/form-submit.php', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ action: 'save_page_order', pages: data })
+                            })
+                            .then(r => r.json())
+                            .then(resp => {
+                                if (resp.success) {
+                                    // Başarı bildirimi
+                                    alert('Sıralama kaydedildi!');
+                                } else {
+                                    alert('Bir hata oluştu!');
+                                }
+                            })
+                            .catch(() => alert('Bir hata oluştu!'));
+                        }
+                    });
+                }
+            });
+            </script>
             </div>
-        </div>
-    </div>
+                    </div>
+                </div>
 
 <?php elseif ($currentPage === 'sayfa-ekle' || $currentPage === 'sayfa-duzenle'): ?>
     <!-- Sayfa Ekle / Düzenle -->
@@ -1596,44 +2027,14 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         </div>
 
-        <!-- İletişim Bilgileri -->
+        <!-- İletişim Bilgileri (ayrı sayfada yönetiliyor) -->
         <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
             <div class="card-header bg-white border-bottom py-3" style="border-radius: 12px 12px 0 0;">
                 <h6 class="mb-0 fw-bold"><i class="fas fa-phone-alt me-2 text-success"></i>İletişim Bilgileri</h6>
             </div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <?php
-                    $iletisimFields = ['site_phone', 'site_phone_raw', 'site_phone_alt', 'site_phone_short', 'site_email', 'site_email_alt', 'site_address', 'whatsapp_message', 'working_hours'];
-                    foreach ($iletisimFields as $key):
-                        $s = $settingGroups['iletisim'][$key] ?? null;
-                        if (!$s) continue;
-                        $isTextarea = in_array($key, ['site_address', 'whatsapp_message', 'working_hours']);
-                    ?>
-                    <div class="<?php echo $isTextarea ? 'col-md-12' : 'col-md-6'; ?>">
-                        <label class="form-label fw-semibold" style="font-size: 13px;"><?php echo htmlspecialchars($s['setting_label'], ENT_QUOTES, 'UTF-8'); ?></label>
-                        <?php if ($isTextarea): ?>
-                            <textarea name="settings[<?php echo htmlspecialchars($key, ENT_QUOTES, 'UTF-8'); ?>]" class="form-control form-control-sm" rows="2"><?php echo htmlspecialchars($s['setting_value'], ENT_QUOTES, 'UTF-8'); ?></textarea>
-                        <?php else: ?>
-                            <input type="text" name="settings[<?php echo htmlspecialchars($key, ENT_QUOTES, 'UTF-8'); ?>]" class="form-control form-control-sm" value="<?php echo htmlspecialchars($s['setting_value'], ENT_QUOTES, 'UTF-8'); ?>">
-                        <?php endif; ?>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        </div>
-
-        <!-- Google Maps -->
-        <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
-            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center" style="border-radius: 12px 12px 0 0;">
-                <h6 class="mb-0 fw-bold"><i class="fas fa-map-marked-alt me-2 text-danger"></i>Harita Ayarları</h6>
-                <button type="button" class="btn btn-sm btn-outline-primary" onclick="previewMap()"><i class="fas fa-eye me-1"></i>Ön İzleme</button>
-            </div>
-            <div class="card-body">
-                <?php $mapUrl = $settingGroups['iletisim']['google_maps_embed']['setting_value'] ?? ''; ?>
-                <label class="form-label fw-semibold" style="font-size: 13px;">Google Maps Embed URL</label>
-                <textarea name="settings[google_maps_embed]" id="mapEmbedUrl" class="form-control form-control-sm" rows="3" placeholder="https://www.google.com/maps/embed?pb=..."><?php echo htmlspecialchars($mapUrl, ENT_QUOTES, 'UTF-8'); ?></textarea>
-                <small class="text-muted">Google Maps'ten "Paylaş → Harita yerleştir" seçeneğinden iframe src URL'sini kopyalayın.</small>
+            <div class="card-body text-center py-4">
+                <p class="text-muted mb-3">İletişim bilgileri artık ayrı bir sayfadan yönetiliyor.</p>
+                <a href="?page=iletisim-ayarlari" class="btn btn-outline-success btn-sm"><i class="fas fa-external-link-alt me-1"></i> İletişim Bilgileri Yönetimi</a>
             </div>
         </div>
 
@@ -1688,34 +2089,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Ayarları Kaydet</button>
     </form>
 
-    <!-- Harita Ön İzleme Modal -->
-    <div class="modal fade" id="mapPreviewModal" tabindex="-1">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content" style="border-radius: 16px; overflow: hidden;">
-                <div class="modal-header border-0 pb-0">
-                    <h6 class="modal-title fw-bold"><i class="fas fa-map-marked-alt me-2 text-danger"></i>Harita Ön İzleme</h6>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-3">
-                    <div id="mapPreviewContainer" style="border-radius: 12px; overflow: hidden; background: #f0f0f0; min-height: 400px; display:flex; align-items:center; justify-content:center;">
-                        <span class="text-muted">Harita URL'si giriniz</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script>
-    function previewMap() {
-        var url = document.getElementById('mapEmbedUrl').value.trim();
-        var container = document.getElementById('mapPreviewContainer');
-        if (url && url.indexOf('google.com/maps') !== -1) {
-            container.innerHTML = '<iframe src="' + url.replace(/"/g, '&quot;') + '" width="100%" height="400" style="border:0; display:block;" allowfullscreen="" loading="eager"></iframe>';
-        } else {
-            container.innerHTML = '<div class="text-center p-5"><i class="fas fa-exclamation-triangle text-warning fa-2x mb-2"></i><br><span class="text-muted">Geçerli bir Google Maps Embed URL\'si giriniz.</span></div>';
-        }
-        new bootstrap.Modal(document.getElementById('mapPreviewModal')).show();
-    }
     function previewImage(input, previewId) {
         var preview = document.getElementById(previewId);
         if (input.files && input.files[0]) {
@@ -3463,6 +3837,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <?php elseif ($currentPage === 'haberler'): ?>
 <?php
+    // Otomatik güncelleme kontrolü
+    $newsIsStale = isNewsStale(120); // 2 saat
+    $lastFetchTime = getLastNewsFetchTime();
     $extNews = getExternalNews([]);
     $extNewsCount = count($extNews);
 ?>
@@ -3471,7 +3848,18 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <div>
                     <h5 class="mb-0 fw-bold"><i class="fas fa-rss text-danger me-2"></i>Sektör Haberleri (Sigortamedya)</h5>
-                    <small class="text-muted">Sigortamedya.com.tr'den çekilen haberler • Toplam <?php echo $extNewsCount; ?> haber</small>
+                    <small class="text-muted">
+                        Sigortamedya.com.tr'den çekilen haberler • Toplam <?php echo $extNewsCount; ?> haber
+                        <?php if ($lastFetchTime): ?>
+                            • <i class="fas fa-clock me-1"></i>Son güncelleme: <?php echo date('d.m.Y H:i', strtotime($lastFetchTime)); ?>
+                        <?php endif; ?>
+                    </small>
+                    <div class="mt-1">
+                        <span class="badge bg-<?php echo $newsIsStale ? 'warning text-dark' : 'success'; ?>" style="font-size:11px;">
+                            <i class="fas fa-<?php echo $newsIsStale ? 'exclamation-triangle' : 'check-circle'; ?> me-1"></i>
+                            <?php echo $newsIsStale ? 'Haberler güncel değil – otomatik güncelleniyor...' : 'Haberler güncel (2 saatlik aralık)'; ?>
+                        </span>
+                    </div>
                 </div>
                 <button type="button" class="btn btn-danger btn-sm" id="btnRefreshNews">
                     <i class="fas fa-sync-alt me-1"></i> Haberleri Güncelle
@@ -3530,6 +3918,429 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         </div>
     </div>
+
+<?php elseif ($currentPage === 'subeler'): ?>
+<?php $adminBranches = getAllBranches(); ?>
+    <div class="card border-0 shadow-sm" style="border-radius:12px;">
+        <div class="card-header bg-white border-0 py-3 px-4">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-store text-primary me-2"></i>Şubeler</h5>
+                    <small class="text-muted">Toplam <?php echo count($adminBranches); ?> şube</small>
+                </div>
+                <a href="?page=sube-ekle" class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i> Yeni Şube</a>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size:13px;">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:50px">#</th>
+                        <th>Şube Adı</th>
+                        <th>Şehir</th>
+                        <th>Telefon</th>
+                        <th style="width:80px">Tür</th>
+                        <th style="width:80px">Durum</th>
+                        <th style="width:100px">İşlem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($adminBranches)): ?>
+                    <tr><td colspan="7" class="text-center py-4 text-muted">Henüz şube eklenmemiş.</td></tr>
+                    <?php else: ?>
+                    <?php foreach ($adminBranches as $br): ?>
+                    <tr>
+                        <td class="text-muted"><?php echo $br['id']; ?></td>
+                        <td class="fw-semibold"><?php echo htmlspecialchars($br['name'], ENT_QUOTES, 'UTF-8'); ?></td>
+                        <td><?php echo htmlspecialchars($br['city'] ?? '', ENT_QUOTES, 'UTF-8'); ?></td>
+                        <td><small><?php echo htmlspecialchars($br['phone'] ?? '', ENT_QUOTES, 'UTF-8'); ?></small></td>
+                        <td>
+                            <?php if ($br['is_headquarters']): ?>
+                            <span class="badge bg-primary" style="font-size:11px;">Merkez</span>
+                            <?php else: ?>
+                            <span class="badge bg-secondary" style="font-size:11px;">Şube</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input toggle-branch" type="checkbox" data-id="<?php echo $br['id']; ?>" <?php echo $br['is_active'] ? 'checked' : ''; ?>>
+                            </div>
+                        </td>
+                        <td>
+                            <a href="?page=sube-duzenle&id=<?php echo $br['id']; ?>" class="btn btn-outline-primary btn-sm" title="Düzenle"><i class="fas fa-edit"></i></a>
+                            <button class="btn btn-outline-danger btn-sm btn-delete-branch" data-id="<?php echo $br['id']; ?>" data-name="<?php echo htmlspecialchars($br['name'], ENT_QUOTES, 'UTF-8'); ?>" title="Sil"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+<!-- Şube Silme Modal -->
+<div class="modal fade" id="deleteBranchModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:12px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="fas fa-exclamation-triangle text-danger me-2"></i>Şube Sil</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong id="deleteBranchName"></strong> şubesini silmek istediğinize emin misiniz?</p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-danger btn-sm" id="confirmDeleteBranch"><i class="fas fa-trash me-1"></i>Sil</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+var _branchDeleteId = 0;
+document.querySelectorAll('.btn-delete-branch').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        _branchDeleteId = this.dataset.id;
+        document.getElementById('deleteBranchName').textContent = this.dataset.name;
+        new bootstrap.Modal(document.getElementById('deleteBranchModal')).show();
+    });
+});
+document.getElementById('confirmDeleteBranch').addEventListener('click', function() {
+    if (_branchDeleteId) {
+        adminAjax('delete_branch', {branch_id: _branchDeleteId}, function(data) {
+            if (data.success) {
+                showAdminToast('success', 'Başarılı', data.message);
+                setTimeout(function() { location.reload(); }, 1000);
+            } else {
+                showAdminToast('danger', 'Hata', data.message);
+            }
+        });
+    }
+});
+document.querySelectorAll('.toggle-branch').forEach(function(el) {
+    el.addEventListener('change', function() {
+        var id = this.dataset.id, val = this.checked ? 1 : 0;
+        this.disabled = true;
+        var checkbox = this;
+        adminAjax('toggle_branch', {branch_id: id, is_active: val}, function(data) {
+            checkbox.disabled = false;
+            if (data.success) {
+                flashRow(checkbox.closest('tr'), val ? '#d1e7dd' : '#f8d7da');
+                showAdminToast('success', 'Başarılı', data.message);
+            } else {
+                checkbox.checked = !checkbox.checked;
+                showAdminToast('danger', 'Hata', data.message || 'Hata oluştu.');
+            }
+        });
+    });
+});
+</script>
+
+<?php elseif ($currentPage === 'sube-ekle' || $currentPage === 'sube-duzenle'): ?>
+<?php
+    $editBranch = null;
+    $isEditBranch = ($currentPage === 'sube-duzenle');
+    if ($isEditBranch) {
+        $editBranch = getBranch((int)($_GET['id'] ?? 0));
+        if (!$editBranch) { header('Location: ?page=subeler'); exit; }
+    }
+    $nextBranchSort = 0;
+    if (!$isEditBranch) {
+        try { $db = getDB(); $nextBranchSort = (int)$db->query("SELECT COALESCE(MAX(sort_order),0)+1 FROM branches")->fetchColumn(); } catch(Exception $e){}
+    }
+?>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="fw-bold mb-0"><?php echo $isEditBranch ? 'Şube Düzenle' : 'Yeni Şube Ekle'; ?></h5>
+        <a href="?page=subeler" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Geri</a>
+    </div>
+    <div class="card border-0 shadow-sm" style="border-radius:12px;">
+        <div class="card-body p-4">
+            <form method="POST" action="<?php echo SITE_URL; ?>/admin/dashboard.php?page=subeler">
+                <?php echo getCSRFTokenField(); ?>
+                <input type="hidden" name="action" value="save_branch">
+                <?php if ($isEditBranch): ?>
+                <input type="hidden" name="branch_id" value="<?php echo $editBranch['id']; ?>">
+                <?php endif; ?>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Şube Adı <span class="text-danger">*</span></label>
+                        <input type="text" name="branch_name" class="form-control" required value="<?php echo $isEditBranch ? htmlspecialchars($editBranch['name'], ENT_QUOTES, 'UTF-8') : ''; ?>" placeholder="Örn: Şanlıurfa Şubesi">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Şehir</label>
+                        <input type="text" name="branch_city" class="form-control" value="<?php echo $isEditBranch ? htmlspecialchars($editBranch['city'] ?? '', ENT_QUOTES, 'UTF-8') : ''; ?>" placeholder="Örn: Şanlıurfa">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Adres</label>
+                        <textarea name="branch_address" class="form-control" rows="2" placeholder="Tam adres bilgisi"><?php echo $isEditBranch ? htmlspecialchars($editBranch['address'] ?? '', ENT_QUOTES, 'UTF-8') : ''; ?></textarea>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Telefon</label>
+                        <input type="text" name="branch_phone" class="form-control" value="<?php echo $isEditBranch ? htmlspecialchars($editBranch['phone'] ?? '', ENT_QUOTES, 'UTF-8') : ''; ?>" placeholder="0XXX XXX XX XX">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Telefon (Alternatif)</label>
+                        <input type="text" name="branch_phone_alt" class="form-control" value="<?php echo $isEditBranch ? htmlspecialchars($editBranch['phone_alt'] ?? '', ENT_QUOTES, 'UTF-8') : ''; ?>" placeholder="0XXX XXX XX XX">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">E-posta</label>
+                        <input type="email" name="branch_email" class="form-control" value="<?php echo $isEditBranch ? htmlspecialchars($editBranch['email'] ?? '', ENT_QUOTES, 'UTF-8') : ''; ?>" placeholder="sube@emresigorta.net">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Google Maps Embed URL</label>
+                        <input type="text" name="branch_maps_embed" id="branchMapsEmbed" class="form-control" value="<?php echo $isEditBranch ? htmlspecialchars($editBranch['maps_embed'] ?? '', ENT_QUOTES, 'UTF-8') : ''; ?>" placeholder="https://www.google.com/maps/embed?pb=...">
+                        <small class="text-muted">Google Maps'ten "Paylaş > Haritayı yerleştir" ile alınan iframe src URL'i</small>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Google Maps Yol Tarifi Linki <span class="badge bg-info text-white" style="font-size:10px; font-weight:500;">Otomatik oluşturulur</span></label>
+                        <input type="url" name="branch_maps_link" id="branchMapsLink" class="form-control" value="<?php echo $isEditBranch ? htmlspecialchars($editBranch['maps_link'] ?? '', ENT_QUOTES, 'UTF-8') : ''; ?>" placeholder="https://maps.google.com/?q=...">
+                        <small class="text-muted">Embed URL girildiğinde otomatik oluşturulur. İsterseniz manuel de düzenleyebilirsiniz.</small>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Çalışma Saatleri</label>
+                        <input type="text" name="branch_working_hours" class="form-control" value="<?php echo $isEditBranch ? htmlspecialchars($editBranch['working_hours'] ?? '', ENT_QUOTES, 'UTF-8') : 'Pazartesi - Cuma: 09:00 - 18:00'; ?>" placeholder="Pazartesi - Cuma: 09:00 - 18:00">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold">Sıralama</label>
+                        <input type="number" name="branch_sort_order" class="form-control" value="<?php echo $isEditBranch ? $editBranch['sort_order'] : $nextBranchSort; ?>">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold d-block">Merkez mi?</label>
+                        <div class="form-check form-switch mt-2">
+                            <input class="form-check-input" type="checkbox" name="branch_is_headquarters" id="branchHQ" <?php echo ($isEditBranch && $editBranch['is_headquarters']) ? 'checked' : ''; ?>>
+                            <label class="form-check-label" for="branchHQ">Genel Merkez</label>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold d-block">Durum</label>
+                        <div class="form-check form-switch mt-2">
+                            <input class="form-check-input" type="checkbox" name="branch_is_active" id="branchActive" <?php echo (!$isEditBranch || $editBranch['is_active']) ? 'checked' : ''; ?>>
+                            <label class="form-check-label" for="branchActive">Aktif</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i>Kaydet</button>
+                    <a href="?page=subeler" class="btn btn-outline-secondary">İptal</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        var embedInput = document.getElementById('branchMapsEmbed');
+        var linkInput = document.getElementById('branchMapsLink');
+        if (!embedInput || !linkInput) return;
+
+        function generateDirectionsLink(embedUrl) {
+            if (!embedUrl) return '';
+            // Extract coordinates from embed URL patterns
+            var lat = null, lng = null;
+            // Pattern: !2d{lng}!3d{lat}
+            var m = embedUrl.match(/!2d(-?[\d.]+)!3d(-?[\d.]+)/);
+            if (m) { lng = m[1]; lat = m[2]; }
+            // Pattern: @{lat},{lng}
+            if (!lat) { m = embedUrl.match(/@(-?[\d.]+),(-?[\d.]+)/); if (m) { lat = m[1]; lng = m[2]; } }
+            // Pattern: ll={lat},{lng}
+            if (!lat) { m = embedUrl.match(/ll=(-?[\d.]+),(-?[\d.]+)/); if (m) { lat = m[1]; lng = m[2]; } }
+            // Pattern: q={lat},{lng}
+            if (!lat) { m = embedUrl.match(/[?&]q=(-?[\d.]+),(-?[\d.]+)/); if (m) { lat = m[1]; lng = m[2]; } }
+            // Pattern: place/{name}/@{lat},{lng}
+            if (!lat) { m = embedUrl.match(/place\/[^/]+\/@(-?[\d.]+),(-?[\d.]+)/); if (m) { lat = m[1]; lng = m[2]; } }
+            if (lat && lng) {
+                return 'https://www.google.com/maps/dir/?api=1&destination=' + lat + ',' + lng;
+            }
+            // Fallback: extract place name from /place/{name}/
+            m = embedUrl.match(/place\/([^/@]+)/);
+            if (m) {
+                return 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(decodeURIComponent(m[1].replace(/\+/g, ' ')));
+            }
+            // Fallback: extract q= parameter (place query)
+            m = embedUrl.match(/[?&]q=([^&]+)/);
+            if (m) {
+                return 'https://www.google.com/maps/dir/?api=1&destination=' + m[1];
+            }
+            return '';
+        }
+
+        embedInput.addEventListener('input', function() {
+            var link = generateDirectionsLink(this.value.trim());
+            if (link && !linkInput.dataset.manual) {
+                linkInput.value = link;
+                linkInput.style.transition = 'background 0.3s';
+                linkInput.style.background = '#e8f5e9';
+                setTimeout(function() { linkInput.style.background = ''; }, 1500);
+            }
+        });
+        // Mark manual edit so auto-fill doesn't override
+        linkInput.addEventListener('input', function() {
+            if (this.value.trim()) { this.dataset.manual = '1'; }
+            else { delete this.dataset.manual; }
+        });
+        // If embed has value but link is empty on load (edit mode), generate it
+        if (embedInput.value.trim() && !linkInput.value.trim()) {
+            var link = generateDirectionsLink(embedInput.value.trim());
+            if (link) linkInput.value = link;
+        }
+    })();
+    </script>
+
+<?php elseif ($currentPage === 'iletisim-ayarlari'): ?>
+    <h6 class="mb-3 fw-bold"><i class="fas fa-address-card me-2 text-primary"></i>İletişim Bilgileri Yönetimi</h6>
+
+    <form method="post" action="" id="contactSettingsForm">
+        <?php echo getCSRFTokenField(); ?>
+        <input type="hidden" name="action" value="save_settings">
+
+        <!-- Telefon Bilgileri -->
+        <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
+            <div class="card-header bg-white border-bottom py-3" style="border-radius: 12px 12px 0 0;">
+                <h6 class="mb-0 fw-bold"><i class="fas fa-phone-alt me-2 text-success"></i>Telefon Bilgileri</h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <?php
+                    $phoneFields = ['site_phone', 'site_phone_raw', 'site_phone_alt', 'site_phone_short'];
+                    foreach ($phoneFields as $key):
+                        $s = $settingGroups['iletisim'][$key] ?? null;
+                        if (!$s) continue;
+                    ?>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold" style="font-size: 13px;"><?php echo htmlspecialchars($s['setting_label'], ENT_QUOTES, 'UTF-8'); ?></label>
+                        <input type="text" name="settings[<?php echo htmlspecialchars($key, ENT_QUOTES, 'UTF-8'); ?>]" class="form-control form-control-sm" value="<?php echo htmlspecialchars($s['setting_value'], ENT_QUOTES, 'UTF-8'); ?>">
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- E-posta Bilgileri -->
+        <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
+            <div class="card-header bg-white border-bottom py-3" style="border-radius: 12px 12px 0 0;">
+                <h6 class="mb-0 fw-bold"><i class="fas fa-envelope me-2 text-info"></i>E-posta Bilgileri</h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <?php
+                    $emailFields = ['site_email', 'site_email_alt'];
+                    foreach ($emailFields as $key):
+                        $s = $settingGroups['iletisim'][$key] ?? null;
+                        if (!$s) continue;
+                    ?>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold" style="font-size: 13px;"><?php echo htmlspecialchars($s['setting_label'], ENT_QUOTES, 'UTF-8'); ?></label>
+                        <input type="text" name="settings[<?php echo htmlspecialchars($key, ENT_QUOTES, 'UTF-8'); ?>]" class="form-control form-control-sm" value="<?php echo htmlspecialchars($s['setting_value'], ENT_QUOTES, 'UTF-8'); ?>">
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- Adres & Çalışma Saatleri -->
+        <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
+            <div class="card-header bg-white border-bottom py-3" style="border-radius: 12px 12px 0 0;">
+                <h6 class="mb-0 fw-bold"><i class="fas fa-map-marker-alt me-2 text-danger"></i>Adres & Çalışma Bilgileri</h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <?php
+                    $adresFields = ['site_address', 'working_hours', 'whatsapp_message'];
+                    foreach ($adresFields as $key):
+                        $s = $settingGroups['iletisim'][$key] ?? null;
+                        if (!$s) continue;
+                    ?>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold" style="font-size: 13px;"><?php echo htmlspecialchars($s['setting_label'], ENT_QUOTES, 'UTF-8'); ?></label>
+                        <textarea name="settings[<?php echo htmlspecialchars($key, ENT_QUOTES, 'UTF-8'); ?>]" class="form-control form-control-sm" rows="2"><?php echo htmlspecialchars($s['setting_value'], ENT_QUOTES, 'UTF-8'); ?></textarea>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- Google Maps -->
+        <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center" style="border-radius: 12px 12px 0 0;">
+                <h6 class="mb-0 fw-bold"><i class="fas fa-map-marked-alt me-2 text-warning"></i>Harita Ayarları</h6>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="previewMapContact()"><i class="fas fa-eye me-1"></i>Ön İzleme</button>
+            </div>
+            <div class="card-body">
+                <?php $mapUrlC = $settingGroups['iletisim']['google_maps_embed']['setting_value'] ?? ''; ?>
+                <label class="form-label fw-semibold" style="font-size: 13px;">Google Maps Embed URL</label>
+                <textarea name="settings[google_maps_embed]" id="mapEmbedUrlContact" class="form-control form-control-sm" rows="3" placeholder="https://www.google.com/maps/embed?pb=..."><?php echo htmlspecialchars($mapUrlC, ENT_QUOTES, 'UTF-8'); ?></textarea>
+                <small class="text-muted">Google Maps'ten "Paylaş → Harita yerleştir" seçeneğinden iframe src URL'sini kopyalayın.</small>
+                <div id="mapPreviewContainerContact" class="mt-3" style="border-radius: 12px; overflow: hidden; display:none;"></div>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> İletişim Bilgilerini Kaydet</button>
+    </form>
+
+    <!-- Şubeler Kısayol -->
+    <div class="card border-0 shadow-sm mt-4" style="border-radius: 12px;">
+        <div class="card-body d-flex align-items-center justify-content-between py-3 px-4">
+            <div>
+                <h6 class="mb-1 fw-bold"><i class="fas fa-store me-2 text-primary"></i>Şube Yönetimi</h6>
+                <small class="text-muted">Şube bilgilerini ekleyin, düzenleyin veya silin.</small>
+            </div>
+            <a href="?page=subeler" class="btn btn-outline-primary btn-sm"><i class="fas fa-arrow-right me-1"></i>Şubelere Git</a>
+        </div>
+    </div>
+
+    <!-- Sosyal Medya Kısayol -->
+    <div class="card border-0 shadow-sm mt-3" style="border-radius: 12px;">
+        <div class="card-body d-flex align-items-center justify-content-between py-3 px-4">
+            <div>
+                <h6 class="mb-1 fw-bold"><i class="fas fa-share-alt me-2 text-info"></i>Sosyal Medya</h6>
+                <small class="text-muted">Sosyal medya hesaplarını yönetin.</small>
+            </div>
+            <a href="?page=sosyal-medya" class="btn btn-outline-info btn-sm"><i class="fas fa-arrow-right me-1"></i>Sosyal Medyaya Git</a>
+        </div>
+    </div>
+
+    <!-- Harita Ön İzleme Modal -->
+    <div class="modal fade" id="mapPreviewModalContact" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 16px; overflow: hidden;">
+                <div class="modal-header border-0 pb-0">
+                    <h6 class="modal-title fw-bold"><i class="fas fa-map-marked-alt me-2 text-danger"></i>Harita Ön İzleme</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-3">
+                    <div id="mapModalPreview" style="border-radius: 12px; overflow: hidden; background: #f0f0f0; min-height: 400px; display:flex; align-items:center; justify-content:center;">
+                        <span class="text-muted">Harita URL'si giriniz</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+    function previewMapContact() {
+        var url = document.getElementById('mapEmbedUrlContact').value.trim();
+        var container = document.getElementById('mapModalPreview');
+        if (url && url.indexOf('google.com/maps') !== -1) {
+            container.innerHTML = '<iframe src="' + url.replace(/"/g, '&quot;') + '" width="100%" height="400" style="border:0; display:block;" allowfullscreen="" loading="eager"></iframe>';
+        } else {
+            container.innerHTML = '<div class="text-center p-5"><i class="fas fa-exclamation-triangle text-warning fa-2x mb-2"></i><br><span class="text-muted">Geçerli bir Google Maps Embed URL\'si giriniz.</span></div>';
+        }
+        new bootstrap.Modal(document.getElementById('mapPreviewModalContact')).show();
+    }
+    // Form AJAX submit
+    document.getElementById('contactSettingsForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var formData = new FormData(this);
+        adminAjax('save_settings', formData, function(data) {
+            if (data.success) {
+                showAdminToast('success', 'Başarılı', data.message);
+            } else {
+                showAdminToast('danger', 'Hata', data.message || 'Hata oluştu.');
+            }
+        });
+    });
+    </script>
 
 <?php elseif ($currentPage === 'kampanyalar'): ?>
     <div class="card border-0 shadow-sm" style="border-radius: 12px;">
@@ -3745,6 +4556,696 @@ document.addEventListener('DOMContentLoaded', function() {
             </form>
         </div>
     </div>
+
+<?php elseif ($currentPage === 'dosyalar'): ?>
+<?php
+    $adminPageTitle = 'Dosya Yönetimi';
+    $uploadsDir = __DIR__ . '/../uploads/';
+    $folders = ['campaigns' => 'Kampanyalar', 'partners' => 'İş Ortakları', 'ruhsat' => 'Ruhsat'];
+    $folderIcons = ['campaigns' => 'fa-bullhorn', 'partners' => 'fa-handshake', 'ruhsat' => 'fa-id-card'];
+    $folderColors = ['campaigns' => '#4f46e5', 'partners' => '#10b981', 'ruhsat' => '#f59e0b'];
+    $activeFolder = sanitizeInput($_GET['dir'] ?? 'campaigns');
+    if (!array_key_exists($activeFolder, $folders)) $activeFolder = 'campaigns';
+    
+    // Veritabanından dosya kullanım bilgisi çek
+    $db = getDB();
+    $fileUsageMap = [];
+    
+    if ($activeFolder === 'campaigns') {
+        $stmt = $db->query("SELECT id, title, image, is_active FROM campaigns WHERE image IS NOT NULL AND image != ''");
+        foreach ($stmt->fetchAll() as $row) {
+            $fileUsageMap[basename($row['image'])] = [
+                'type' => 'Kampanya',
+                'name' => $row['title'],
+                'active' => (bool)$row['is_active'],
+                'link' => SITE_URL . '/admin/dashboard.php?page=kampanya-duzenle&id=' . $row['id'],
+            ];
+        }
+    } elseif ($activeFolder === 'partners') {
+        $stmt = $db->query("SELECT id, name, logo, is_active FROM partners WHERE logo IS NOT NULL AND logo != ''");
+        foreach ($stmt->fetchAll() as $row) {
+            $fileUsageMap[basename($row['logo'])] = [
+                'type' => 'İş Ortağı',
+                'name' => $row['name'],
+                'active' => (bool)$row['is_active'],
+                'link' => SITE_URL . '/admin/dashboard.php?page=is-ortagi-duzenle&id=' . $row['id'],
+            ];
+        }
+    } elseif ($activeFolder === 'ruhsat') {
+        $stmt = $db->query("SELECT id, form_type, visitor_name, form_data FROM form_submissions WHERE form_data LIKE '%ruhsat%'");
+        foreach ($stmt->fetchAll() as $row) {
+            $formData = json_decode($row['form_data'], true);
+            if (!empty($formData['ruhsat_foto'])) {
+                $fileUsageMap[basename($formData['ruhsat_foto'])] = [
+                    'type' => 'Başvuru #' . $row['id'],
+                    'name' => $row['visitor_name'] ?: $row['form_type'],
+                    'active' => true,
+                    'link' => SITE_URL . '/admin/dashboard.php?page=basvurular',
+                ];
+            }
+        }
+    }
+    
+    // Klasördeki dosyaları listele
+    $files = [];
+    $scanDir = $uploadsDir . $activeFolder . '/';
+    if (is_dir($scanDir)) {
+        $items = scandir($scanDir);
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..' || $item === '.htaccess' || $item === '.gitkeep') continue;
+            $fullPath = $scanDir . $item;
+            if (!is_file($fullPath)) continue;
+            $ext = strtolower(pathinfo($item, PATHINFO_EXTENSION));
+            $usage = $fileUsageMap[$item] ?? null;
+            $files[] = [
+                'name' => $item,
+                'path' => 'uploads/' . $activeFolder . '/' . $item,
+                'size' => filesize($fullPath),
+                'date' => filemtime($fullPath),
+                'ext' => $ext,
+                'is_image' => in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg']),
+                'usage' => $usage,
+            ];
+        }
+        // En yeni dosya en üstte
+        usort($files, function($a, $b) { return $b['date'] - $a['date']; });
+    }
+    
+    function formatFileSize($bytes) {
+        if ($bytes >= 1048576) return round($bytes / 1048576, 1) . ' MB';
+        if ($bytes >= 1024) return round($bytes / 1024, 1) . ' KB';
+        return $bytes . ' B';
+    }
+?>
+
+<!-- Klasör Kartları -->
+<div class="row g-3 mb-4">
+    <?php foreach ($folders as $fKey => $fLabel): 
+        $fPath = $uploadsDir . $fKey . '/';
+        $fCount = 0;
+        if (is_dir($fPath)) {
+            $fItems = array_diff(scandir($fPath), ['.', '..', '.htaccess', '.gitkeep']);
+            $fCount = count(array_filter($fItems, function($f) use ($fPath) { return is_file($fPath . $f); }));
+        }
+        $isActive = ($fKey === $activeFolder);
+    ?>
+    <div class="col-md-4">
+        <a href="<?php echo SITE_URL; ?>/admin/dashboard.php?page=dosyalar&dir=<?php echo $fKey; ?>" class="text-decoration-none">
+            <div class="stat-card <?php echo $isActive ? 'stat-primary' : ''; ?>" style="cursor:pointer;<?php echo $isActive ? 'border-color:rgba(79,70,229,0.3);background:rgba(79,70,229,0.03);' : ''; ?>">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="stat-icon" style="<?php echo $isActive ? '' : 'background:' . $folderColors[$fKey] . '15;color:' . $folderColors[$fKey]; ?>">
+                        <i class="fas <?php echo $folderIcons[$fKey]; ?>"></i>
+                    </div>
+                    <div>
+                        <div class="stat-value" style="font-size:20px;"><?php echo $fCount; ?></div>
+                        <div class="stat-label"><?php echo $fLabel; ?></div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    </div>
+    <?php endforeach; ?>
+</div>
+
+<!-- Yükleme + Liste -->
+<div class="admin-card mb-4">
+    <div class="admin-card-header">
+        <div class="d-flex align-items-center gap-2">
+            <i class="fas fa-folder-open" style="color:<?php echo $folderColors[$activeFolder]; ?>"></i>
+            <h6 class="mb-0"><?php echo $folders[$activeFolder]; ?> <span class="text-muted fw-normal">(<?php echo count($files); ?> dosya)</span></h6>
+        </div>
+        <button class="btn btn-sm" style="background:var(--admin-primary);color:#fff;border-radius:8px;font-size:13px;" data-bs-toggle="modal" data-bs-target="#uploadFileModal">
+            <i class="fas fa-cloud-upload-alt me-1"></i> Dosya Yükle
+        </button>
+    </div>
+    <div class="admin-card-body p-0">
+        <?php if (empty($files)): ?>
+        <div class="text-center py-5">
+            <i class="fas fa-folder-open d-block mb-2" style="font-size:40px;color:#cbd5e1;"></i>
+            <p class="text-muted mb-0">Bu klasörde henüz dosya yok.</p>
+        </div>
+        <?php else: ?>
+        <?php
+            // Görsel index haritası oluştur
+            $_imgIndexMap = [];
+            $_imgCounter = 0;
+            foreach ($files as $_fi) {
+                if ($_fi['is_image']) { $_imgIndexMap[$_fi['path']] = $_imgCounter++; }
+            }
+        ?>
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th style="width:50px;">Önizleme</th>
+                        <th>Dosya Adı</th>
+                        <th>Kullanıldığı Yer</th>
+                        <th>Boyut</th>
+                        <th>Tarih</th>
+                        <th style="width:120px;" class="text-end">İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($files as $f): ?>
+                    <tr>
+                        <td>
+                            <?php if ($f['is_image']): ?>
+                            <img src="<?php echo SITE_URL . '/' . htmlspecialchars($f['path'], ENT_QUOTES, 'UTF-8'); ?>" alt="" style="width:40px;height:40px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;">
+                            <?php else: ?>
+                            <div style="width:40px;height:40px;border-radius:8px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:16px;">
+                                <i class="fas fa-file-pdf"></i>
+                            </div>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <div style="font-size:13px;font-weight:600;color:#1e293b;word-break:break-all;"><?php echo htmlspecialchars($f['name'], ENT_QUOTES, 'UTF-8'); ?></div>
+                            <div style="font-size:11px;color:#94a3b8;text-transform:uppercase;"><?php echo strtoupper($f['ext']); ?></div>
+                        </td>
+                        <td>
+                            <?php if ($f['usage']): ?>
+                            <a href="<?php echo htmlspecialchars($f['usage']['link'], ENT_QUOTES, 'UTF-8'); ?>" class="text-decoration-none d-inline-flex align-items-center gap-1" style="font-size:12.5px;">
+                                <span class="admin-badge <?php echo $f['usage']['active'] ? 'admin-badge-success' : 'admin-badge-warning'; ?>" style="font-size:10.5px;">
+                                    <i class="fas <?php echo $f['usage']['active'] ? 'fa-check-circle' : 'fa-pause-circle'; ?>" style="font-size:9px;"></i>
+                                    <?php echo htmlspecialchars($f['usage']['type'], ENT_QUOTES, 'UTF-8'); ?>
+                                </span>
+                                <span style="color:#334155;font-weight:500;"><?php echo htmlspecialchars($f['usage']['name'], ENT_QUOTES, 'UTF-8'); ?></span>
+                            </a>
+                            <?php else: ?>
+                            <span class="admin-badge admin-badge-danger" style="font-size:10.5px;">
+                                <i class="fas fa-unlink" style="font-size:9px;"></i> Kullanılmıyor
+                            </span>
+                            <?php endif; ?>
+                        </td>
+                        <td><span style="font-size:13px;color:#64748b;"><?php echo formatFileSize($f['size']); ?></span></td>
+                        <td><span style="font-size:13px;color:#64748b;"><?php echo date('d.m.Y H:i', $f['date']); ?></span></td>
+                        <td class="text-end">
+                            <div class="d-flex gap-1 justify-content-end">
+                                <?php if ($f['is_image']): ?>
+                                <button class="btn-action btn-action-view" title="Görüntüle" onclick="openPreview(<?php echo $_imgIndexMap[$f['path']]; ?>)">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <?php else: ?>
+                                <a href="<?php echo SITE_URL . '/' . htmlspecialchars($f['path'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" class="btn-action btn-action-view" title="Görüntüle">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <?php endif; ?>
+                                <button class="btn-action btn-action-delete" title="Sil" onclick="confirmDeleteFile('<?php echo htmlspecialchars($f['path'], ENT_QUOTES, 'UTF-8'); ?>', '<?php echo htmlspecialchars($f['name'], ENT_QUOTES, 'UTF-8'); ?>')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<!-- Dosya Yükleme Modal -->
+<div class="modal fade" id="uploadFileModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:16px;border:none;">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-bold"><i class="fas fa-cloud-upload-alt me-2" style="color:var(--admin-primary);"></i>Dosya Yükle</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data">
+                <?php echo getCSRFTokenField(); ?>
+                <input type="hidden" name="action" value="upload_file">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" style="font-size:13px;font-weight:600;">Hedef Klasör</label>
+                        <select name="upload_dir" class="form-select" style="border-radius:8px;font-size:13px;">
+                            <?php foreach ($folders as $fKey => $fLabel): ?>
+                            <option value="<?php echo $fKey; ?>" <?php echo $fKey === $activeFolder ? 'selected' : ''; ?>><?php echo $fLabel; ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" style="font-size:13px;font-weight:600;">Dosya Seç</label>
+                        <input type="file" name="upload_file" class="form-control" style="border-radius:8px;font-size:13px;" accept=".jpg,.jpeg,.png,.webp,.svg,.pdf,.gif" required>
+                        <div class="form-text" style="font-size:11px;">İzin verilen: JPG, PNG, WEBP, SVG, PDF, GIF — Maks 5MB</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal" style="border-radius:8px;">İptal</button>
+                    <button type="submit" class="btn btn-sm" style="background:var(--admin-primary);color:#fff;border-radius:8px;"><i class="fas fa-upload me-1"></i> Yükle</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Dosya Silme Modal -->
+<div class="modal fade" id="deleteFileModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:16px;border:none;">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-bold"><i class="fas fa-exclamation-triangle text-danger me-2"></i>Dosya Sil</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post">
+                <?php echo getCSRFTokenField(); ?>
+                <input type="hidden" name="action" value="delete_file">
+                <input type="hidden" name="file_path" id="deleteFilePath">
+                <div class="modal-body">
+                    <p style="font-size:14px;"><strong id="deleteFileName"></strong> dosyasını silmek istediğinize emin misiniz?<br><small class="text-danger">Bu işlem geri alınamaz.</small></p>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal" style="border-radius:8px;">İptal</button>
+                    <button type="submit" class="btn btn-danger btn-sm" style="border-radius:8px;"><i class="fas fa-trash me-1"></i> Sil</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Görsel Önizleme Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content" style="border-radius:16px;border:none;background:#0f172a;">
+            <div class="modal-header border-0 py-2 px-3" style="background:rgba(255,255,255,0.05);">
+                <span id="previewTitle" style="font-size:13px;color:rgba(255,255,255,0.7);font-weight:500;"></span>
+                <div class="d-flex align-items-center gap-2">
+                    <span id="previewCounter" style="font-size:12px;color:rgba(255,255,255,0.4);"></span>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" style="font-size:12px;"></button>
+                </div>
+            </div>
+            <div class="modal-body p-0 position-relative" style="min-height:400px;display:flex;align-items:center;justify-content:center;">
+                <img id="previewImage" src="" alt="" style="max-width:100%;max-height:75vh;object-fit:contain;display:block;margin:auto;padding:16px;">
+                <button id="previewPrev" class="position-absolute start-0 top-50 translate-middle-y ms-2" style="width:44px;height:44px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.7);font-size:18px;cursor:pointer;backdrop-filter:blur(8px);transition:all .2s;display:flex;align-items:center;justify-content:center;" onclick="slidePreview(-1)">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button id="previewNext" class="position-absolute end-0 top-50 translate-middle-y me-2" style="width:44px;height:44px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.7);font-size:18px;cursor:pointer;backdrop-filter:blur(8px);transition:all .2s;display:flex;align-items:center;justify-content:center;" onclick="slidePreview(1)">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <div id="previewThumbs" class="d-flex gap-2 px-3 pb-3 pt-2" style="overflow-x:auto;background:rgba(255,255,255,0.03);"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+<?php
+    // Sadece görselleri JS dizisine aktar
+    $imageFiles = array_values(array_filter($files, fn($x) => $x['is_image']));
+?>
+var _gallery = [
+    <?php foreach ($imageFiles as $img): ?>
+    { src: '<?php echo SITE_URL . '/' . htmlspecialchars($img['path'], ENT_QUOTES, 'UTF-8'); ?>', name: '<?php echo htmlspecialchars($img['name'], ENT_QUOTES, 'UTF-8'); ?>' },
+    <?php endforeach; ?>
+];
+var _currentSlide = 0;
+var _previewModal = null;
+
+function openPreview(idx) {
+    _currentSlide = idx;
+    if (!_previewModal) _previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+    updatePreview();
+    _previewModal.show();
+}
+
+function slidePreview(dir) {
+    _currentSlide = (_currentSlide + dir + _gallery.length) % _gallery.length;
+    updatePreview();
+}
+
+function updatePreview() {
+    var item = _gallery[_currentSlide];
+    document.getElementById('previewImage').src = item.src;
+    document.getElementById('previewTitle').textContent = item.name;
+    document.getElementById('previewCounter').textContent = (_currentSlide + 1) + ' / ' + _gallery.length;
+    // Navigasyon butonları
+    document.getElementById('previewPrev').style.display = _gallery.length > 1 ? 'flex' : 'none';
+    document.getElementById('previewNext').style.display = _gallery.length > 1 ? 'flex' : 'none';
+    // Thumbnails
+    var thumbs = document.getElementById('previewThumbs');
+    thumbs.innerHTML = '';
+    if (_gallery.length > 1) {
+        _gallery.forEach(function(g, i) {
+            var t = document.createElement('img');
+            t.src = g.src;
+            t.alt = g.name;
+            t.style.cssText = 'width:52px;height:52px;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid ' + (i === _currentSlide ? '#818cf8' : 'transparent') + ';opacity:' + (i === _currentSlide ? '1' : '0.5') + ';transition:all .2s;flex-shrink:0;';
+            t.onclick = function() { _currentSlide = i; updatePreview(); };
+            thumbs.appendChild(t);
+        });
+        // Aktif thumbnail'ı görünür yap
+        setTimeout(function() {
+            var active = thumbs.children[_currentSlide];
+            if (active) active.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }, 50);
+    }
+}
+
+// Klavye tuşları ile navigasyon
+document.addEventListener('keydown', function(e) {
+    var modal = document.getElementById('previewModal');
+    if (!modal.classList.contains('show')) return;
+    if (e.key === 'ArrowLeft') slidePreview(-1);
+    else if (e.key === 'ArrowRight') slidePreview(1);
+});
+
+function confirmDeleteFile(path, name) {
+    document.getElementById('deleteFilePath').value = path;
+    document.getElementById('deleteFileName').textContent = name;
+    new bootstrap.Modal(document.getElementById('deleteFileModal')).show();
+}
+</script>
+
+<?php endif; ?>
+
+<?php if ($currentPage === 'islem-gecmisi'): ?>
+<?php
+    // Filtreler
+    $_filtAdmin = (int)($_GET['admin_id'] ?? 0);
+    $_filtAction = trim($_GET['filter_action'] ?? '');
+    $_filtTable = trim($_GET['filter_table'] ?? '');
+    $_filtFrom = trim($_GET['date_from'] ?? '');
+    $_filtTo = trim($_GET['date_to'] ?? '');
+    $_filtSearch = trim($_GET['search'] ?? '');
+    $_filtPage = max(1, (int)($_GET['p'] ?? 1));
+    $_perPage = 50;
+
+    $_logFilters = [];
+    if ($_filtAdmin) $_logFilters['admin_id'] = $_filtAdmin;
+    if ($_filtAction) $_logFilters['action'] = $_filtAction;
+    if ($_filtTable) $_logFilters['table_name'] = $_filtTable;
+    if ($_filtFrom) $_logFilters['date_from'] = $_filtFrom;
+    if ($_filtTo) $_logFilters['date_to'] = $_filtTo;
+    if ($_filtSearch) $_logFilters['search'] = $_filtSearch;
+
+    $_totalLogs = getAuditLogCount($_logFilters);
+    $_logFilters['limit'] = $_perPage;
+    $_logFilters['offset'] = ($_filtPage - 1) * $_perPage;
+    $_logs = getAuditLogs($_logFilters);
+    $_totalPages = ceil($_totalLogs / $_perPage);
+
+    // Admin listesi (filtre için)
+    $_adminList = [];
+    try { $db_al = getDB(); $_adminList = $db_al->query("SELECT id, username, full_name FROM admins ORDER BY full_name")->fetchAll(); } catch (Exception $e) {}
+
+    // Aksiyon renkleri
+    $_actionColors = [
+        'login' => 'success', 'logout' => 'secondary',
+        'save_page' => 'primary', 'delete_page' => 'danger', 'toggle_page' => 'warning',
+        'save_settings' => 'info', 'save_user' => 'primary', 'delete_user' => 'danger',
+        'save_partner' => 'primary', 'delete_partner' => 'danger', 'toggle_partner' => 'warning',
+        'save_social' => 'primary', 'delete_social' => 'danger', 'toggle_social' => 'warning',
+        'save_testimonial' => 'primary', 'delete_testimonial' => 'danger', 'toggle_testimonial' => 'warning',
+        'save_faq' => 'primary', 'delete_faq' => 'danger', 'delete_faq_category' => 'danger', 'toggle_faq_category' => 'warning', 'toggle_faq_homepage' => 'warning', 'toggle_faq_active' => 'warning', 'save_faq_category' => 'primary',
+        'save_blog_post' => 'primary', 'delete_blog_post' => 'danger', 'toggle_blog_post' => 'warning', 'toggle_blog_featured' => 'warning', 'save_blog_category' => 'primary', 'delete_blog_category' => 'danger', 'toggle_blog_category' => 'warning',
+        'save_campaign' => 'primary', 'delete_campaign' => 'danger', 'toggle_campaign' => 'warning',
+        'save_branch' => 'primary', 'delete_branch' => 'danger', 'toggle_branch' => 'warning',
+        'upload_file' => 'success', 'delete_file' => 'danger',
+        'refresh_external_news' => 'info', 'delete_external_news' => 'danger', 'toggle_external_news' => 'warning',
+        'save_partner_order' => 'info', 'save_testimonial_order' => 'info',
+        'revert_audit_log' => 'dark',
+        'update_submission_status' => 'info', 'delete_submission' => 'danger',
+    ];
+?>
+    <div class="card border-0 shadow-sm mb-4" style="border-radius:12px;">
+        <div class="card-header bg-white border-0 py-3 px-4">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div>
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-history text-indigo me-2"></i>İşlem Geçmişi</h5>
+                    <small class="text-muted">Tüm admin işlemleri ve değişiklik kayıtları • Toplam <?php echo $_totalLogs; ?> kayıt</small>
+                </div>
+            </div>
+        </div>
+        <div class="card-body px-4 py-3">
+            <form method="get" class="row g-2 align-items-end mb-3">
+                <input type="hidden" name="page" value="islem-gecmisi">
+                <div class="col-md-2">
+                    <label class="form-label small mb-1">Kullanıcı</label>
+                    <select name="admin_id" class="form-select form-select-sm">
+                        <option value="">Tümü</option>
+                        <?php foreach ($_adminList as $adm): ?>
+                        <option value="<?php echo $adm['id']; ?>" <?php echo $_filtAdmin == $adm['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($adm['full_name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small mb-1">İşlem Türü</label>
+                    <select name="filter_table" class="form-select form-select-sm">
+                        <option value="">Tümü</option>
+                        <option value="pages" <?php echo $_filtTable === 'pages' ? 'selected' : ''; ?>>Sayfalar</option>
+                        <option value="admins" <?php echo $_filtTable === 'admins' ? 'selected' : ''; ?>>Kullanıcılar</option>
+                        <option value="campaigns" <?php echo $_filtTable === 'campaigns' ? 'selected' : ''; ?>>Kampanyalar</option>
+                        <option value="partners" <?php echo $_filtTable === 'partners' ? 'selected' : ''; ?>>İş Ortakları</option>
+                        <option value="blog_posts" <?php echo $_filtTable === 'blog_posts' ? 'selected' : ''; ?>>Blog</option>
+                        <option value="faqs" <?php echo $_filtTable === 'faqs' ? 'selected' : ''; ?>>SSS</option>
+                        <option value="external_news" <?php echo $_filtTable === 'external_news' ? 'selected' : ''; ?>>Haberler</option>
+                        <option value="site_settings" <?php echo $_filtTable === 'site_settings' ? 'selected' : ''; ?>>Ayarlar</option>
+                        <option value="uploads" <?php echo $_filtTable === 'uploads' ? 'selected' : ''; ?>>Dosyalar</option>
+                        <option value="branches" <?php echo $_filtTable === 'branches' ? 'selected' : ''; ?>>Şubeler</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small mb-1">Başlangıç</label>
+                    <input type="date" name="date_from" class="form-control form-control-sm" value="<?php echo htmlspecialchars($_filtFrom); ?>">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small mb-1">Bitiş</label>
+                    <input type="date" name="date_to" class="form-control form-control-sm" value="<?php echo htmlspecialchars($_filtTo); ?>">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small mb-1">Ara</label>
+                    <input type="text" name="search" class="form-control form-control-sm" placeholder="İşlem ara..." value="<?php echo htmlspecialchars($_filtSearch); ?>">
+                </div>
+                <div class="col-md-2 d-flex gap-1">
+                    <button type="submit" class="btn btn-sm btn-primary flex-fill"><i class="fas fa-search me-1"></i>Filtrele</button>
+                    <a href="?page=islem-gecmisi" class="btn btn-sm btn-outline-secondary"><i class="fas fa-times"></i></a>
+                </div>
+            </form>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="font-size:13px;">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width:50px">#</th>
+                        <th style="width:140px">Tarih</th>
+                        <th style="width:130px">Kullanıcı</th>
+                        <th>İşlem</th>
+                        <th style="width:100px">Tablo</th>
+                        <th style="width:60px">ID</th>
+                        <th style="width:110px">IP</th>
+                        <th style="width:80px">Detay</th>
+                        <th style="width:80px">Geri Al</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($_logs)): ?>
+                    <tr><td colspan="9" class="text-center py-4 text-muted">Henüz işlem kaydı bulunmuyor.</td></tr>
+                    <?php else: ?>
+                    <?php foreach ($_logs as $log): ?>
+                    <?php $_color = $_actionColors[$log['action']] ?? 'secondary'; ?>
+                    <tr>
+                        <td class="text-muted"><?php echo $log['id']; ?></td>
+                        <td><small><?php echo date('d.m.Y H:i:s', strtotime($log['created_at'])); ?></small></td>
+                        <td>
+                            <span class="fw-semibold"><?php echo htmlspecialchars($log['admin_username']); ?></span>
+                        </td>
+                        <td>
+                            <span class="badge bg-<?php echo $_color; ?>" style="font-size:11px;">
+                                <?php echo htmlspecialchars($log['action_label'] ?: $log['action']); ?>
+                            </span>
+                        </td>
+                        <td><small class="text-muted"><?php echo htmlspecialchars($log['table_name'] ?? '-'); ?></small></td>
+                        <td><small class="text-muted"><?php echo $log['record_id'] ?: '-'; ?></small></td>
+                        <td><small class="text-muted"><?php echo htmlspecialchars($log['ip_address'] ?? ''); ?></small></td>
+                        <td>
+                            <?php if ($log['old_data'] || $log['new_data']): ?>
+                            <button class="btn btn-outline-secondary btn-sm" onclick="showAuditDetail(<?php echo $log['id']; ?>)" title="Detay Göster">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <?php else: ?>
+                            <span class="text-muted">-</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php
+                            $canRevert = false;
+                            if ($log['old_data'] && $log['action'] !== 'revert_audit_log' && $log['action'] !== 'login' && $log['action'] !== 'logout') {
+                                $canRevert = true;
+                            }
+                            ?>
+                            <?php if ($canRevert && hasRole('yonetici')): ?>
+                            <button class="btn btn-outline-warning btn-sm" onclick="revertAction(<?php echo $log['id']; ?>, '<?php echo htmlspecialchars($log['action_label'] ?: $log['action'], ENT_QUOTES, 'UTF-8'); ?>')" title="Geri Al">
+                                <i class="fas fa-undo"></i>
+                            </button>
+                            <?php else: ?>
+                            <span class="text-muted">-</span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+        <?php if ($_totalPages > 1): ?>
+        <div class="card-footer bg-white border-0 py-3 px-4">
+            <nav>
+                <ul class="pagination pagination-sm justify-content-center mb-0">
+                    <?php for ($p = 1; $p <= $_totalPages; $p++): ?>
+                    <?php
+                        $params = $_GET;
+                        $params['p'] = $p;
+                        $qs = http_build_query($params);
+                    ?>
+                    <li class="page-item <?php echo $p === $_filtPage ? 'active' : ''; ?>">
+                        <a class="page-link" href="?<?php echo $qs; ?>"><?php echo $p; ?></a>
+                    </li>
+                    <?php endfor; ?>
+                </ul>
+            </nav>
+        </div>
+        <?php endif; ?>
+    </div>
+
+<!-- İşlem Detay Modal -->
+<div class="modal fade" id="auditDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="border-radius:12px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="fas fa-info-circle text-primary me-2"></i>İşlem Detayı</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="auditDetailBody">
+                <div class="text-center py-4"><i class="fas fa-spinner fa-spin"></i> Yükleniyor...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Audit log verilerini hazırla (tüm sayfadaki kayıtlar için)
+var _auditData = {};
+<?php foreach ($_logs as $log): ?>
+_auditData[<?php echo $log['id']; ?>] = {
+    id: <?php echo $log['id']; ?>,
+    date: <?php echo json_encode(date('d.m.Y H:i:s', strtotime($log['created_at']))); ?>,
+    user: <?php echo json_encode($log['admin_username']); ?>,
+    action: <?php echo json_encode($log['action']); ?>,
+    label: <?php echo json_encode($log['action_label']); ?>,
+    table: <?php echo json_encode($log['table_name']); ?>,
+    recordId: <?php echo json_encode($log['record_id']); ?>,
+    ip: <?php echo json_encode($log['ip_address']); ?>,
+    ua: <?php echo json_encode(mb_substr($log['user_agent'] ?? '', 0, 100, 'UTF-8')); ?>,
+    oldData: <?php echo $log['old_data'] ?: 'null'; ?>,
+    newData: <?php echo $log['new_data'] ?: 'null'; ?>
+};
+<?php endforeach; ?>
+
+function showAuditDetail(id) {
+    var d = _auditData[id];
+    if (!d) return;
+    var html = '<div class="mb-3">';
+    html += '<div class="row g-2 mb-3">';
+    html += '<div class="col-6"><strong>Tarih:</strong> ' + d.date + '</div>';
+    html += '<div class="col-6"><strong>Kullanıcı:</strong> ' + escHtml(d.user) + '</div>';
+    html += '<div class="col-6"><strong>İşlem:</strong> ' + escHtml(d.label || d.action) + '</div>';
+    html += '<div class="col-6"><strong>Tablo:</strong> ' + escHtml(d.table || '-') + ' / ID: ' + (d.recordId || '-') + '</div>';
+    html += '<div class="col-6"><strong>IP:</strong> ' + escHtml(d.ip || '-') + '</div>';
+    html += '<div class="col-6"><strong>Tarayıcı:</strong> ' + escHtml(d.ua || '-') + '</div>';
+    html += '</div>';
+
+    if (d.oldData) {
+        html += '<h6 class="fw-bold text-danger"><i class="fas fa-minus-circle me-1"></i>Eski Veri (Kurtarılabilir)</h6>';
+        html += '<div class="bg-light p-3 rounded mb-3" style="max-height:250px;overflow:auto;font-size:12px;">';
+        html += renderDataTable(d.oldData);
+        html += '</div>';
+    }
+    if (d.newData) {
+        html += '<h6 class="fw-bold text-success"><i class="fas fa-plus-circle me-1"></i>Yeni Veri</h6>';
+        html += '<div class="bg-light p-3 rounded" style="max-height:250px;overflow:auto;font-size:12px;">';
+        html += renderDataTable(d.newData);
+        html += '</div>';
+    }
+    html += '</div>';
+    document.getElementById('auditDetailBody').innerHTML = html;
+    new bootstrap.Modal(document.getElementById('auditDetailModal')).show();
+}
+
+function renderDataTable(data) {
+    if (typeof data !== 'object' || data === null) return '<em>Veri yok</em>';
+    var rows = '';
+    for (var key in data) {
+        if (!data.hasOwnProperty(key)) continue;
+        var val = data[key];
+        if (val === null || val === '') val = '<em class="text-muted">boş</em>';
+        else if (typeof val === 'object') val = '<pre style="margin:0;font-size:11px;white-space:pre-wrap;">' + escHtml(JSON.stringify(val, null, 2)) + '</pre>';
+        else {
+            var s = String(val);
+            if (s.length > 300) s = s.substring(0, 300) + '...';
+            val = escHtml(s);
+        }
+        rows += '<tr><td class="fw-semibold text-nowrap pe-3" style="vertical-align:top;">' + escHtml(key) + '</td><td>' + val + '</td></tr>';
+    }
+    return '<table class="table table-sm table-borderless mb-0">' + rows + '</table>';
+}
+
+function escHtml(t) {
+    var d = document.createElement('div');
+    d.textContent = t;
+    return d.innerHTML;
+}
+
+var _revertId = 0;
+function revertAction(id, label) {
+    _revertId = id;
+    document.getElementById('revertActionLabel').textContent = label;
+    new bootstrap.Modal(document.getElementById('revertConfirmModal')).show();
+}
+document.addEventListener('DOMContentLoaded', function() {
+    var confirmBtn = document.getElementById('confirmRevertBtn');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function() {
+            if (!_revertId) return;
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Geri alınıyor...';
+            adminAjax('revert_audit_log', {log_id: _revertId}, function(data) {
+                if (data.success) {
+                    showAdminToast('success', 'Başarılı', data.message);
+                    setTimeout(function() { location.reload(); }, 1200);
+                } else {
+                    showAdminToast('danger', 'Hata', data.message || 'İşlem geri alınamadı.');
+                    document.getElementById('confirmRevertBtn').disabled = false;
+                    document.getElementById('confirmRevertBtn').innerHTML = '<i class="fas fa-undo me-1"></i>Evet, Geri Al';
+                }
+            });
+        });
+    }
+});
+</script>
+
+<!-- Geri Alma Onay Modal -->
+<div class="modal fade" id="revertConfirmModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:12px;">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-bold"><i class="fas fa-undo text-warning me-2"></i>İşlemi Geri Al</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size:14px;">
+                    <strong>"<span id="revertActionLabel"></span>"</strong> işlemini geri almak istediğinize emin misiniz?
+                </p>
+                <div class="alert alert-warning py-2" style="font-size:13px;">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    Bu işlem, kayıtlı eski veriyi geri yükleyecektir. Geri alma işlemi de İşlem Geçmişi'nde kayıt altına alınacaktır.
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-warning btn-sm" id="confirmRevertBtn"><i class="fas fa-undo me-1"></i>Evet, Geri Al</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <?php endif; ?>
 
@@ -4517,7 +6018,27 @@ document.addEventListener('DOMContentLoaded', function() {
     // ==================== SSS Toggle Homepage (AJAX) ====================
 
     // ==================== Harici Haberler ====================
-    // Refresh butonu
+    // Sayfa yüklendiğinde otomatik güncelleme (haberler güncel değilse)
+    var newsIsStale = <?php echo json_encode($newsIsStale ?? false); ?>;
+    if (newsIsStale && document.getElementById('btnRefreshNews')) {
+        (function() {
+            var btn = document.getElementById('btnRefreshNews');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Otomatik güncelleniyor...';
+            adminAjax('refresh_external_news', {}, function(data) {
+                if (data.success) {
+                    showAdminToast('success', 'Otomatik Güncelleme', data.message);
+                    setTimeout(function() { location.reload(); }, 1500);
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Haberleri Güncelle';
+                    showAdminToast('danger', 'Hata', data.message || 'Otomatik güncelleme başarısız.');
+                }
+            });
+        })();
+    }
+
+    // Refresh butonu (manuel)
     var btnRefresh = document.getElementById('btnRefreshNews');
     if (btnRefresh) {
         btnRefresh.addEventListener('click', function() {

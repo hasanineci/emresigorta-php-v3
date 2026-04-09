@@ -42,6 +42,205 @@ function turkishDate($datetime, $format = 'long') {
     if ($format === 'time') return $saat;
     return $gun . ' ' . $ay . ' ' . $yil . ', ' . $saat;
 }
+
+// ==================== ADMIN AUDIT LOG ====================
+function logAdminAction($action, $actionLabel = '', $tableName = null, $recordId = null, $oldData = null, $newData = null) {
+    try {
+        $db = getDB();
+        $adminId = $_SESSION['admin_id'] ?? 0;
+        $adminUsername = $_SESSION['admin_username'] ?? 'system';
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        $ua = mb_substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500, 'UTF-8');
+        
+        $stmt = $db->prepare("INSERT INTO admin_audit_log (admin_id, admin_username, action, action_label, table_name, record_id, old_data, new_data, ip_address, user_agent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([
+            $adminId,
+            $adminUsername,
+            $action,
+            $actionLabel ?: $action,
+            $tableName,
+            $recordId,
+            $oldData ? json_encode($oldData, JSON_UNESCAPED_UNICODE) : null,
+            $newData ? json_encode($newData, JSON_UNESCAPED_UNICODE) : null,
+            $ip,
+            $ua
+        ]);
+        return true;
+    } catch (Exception $e) {
+        error_log('Audit log error: ' . $e->getMessage());
+        return false;
+    }
+}
+
+// İşlem Geri Alma
+function revertAuditLog($logId) {
+    $db = getDB();
+    $log = getAuditLogById($logId);
+    if (!$log) throw new Exception('Kayıt bulunamadı.');
+    
+    $action = $log['action'];
+    $table = $log['table_name'];
+    $recordId = $log['record_id'];
+    $oldData = $log['old_data'] ? json_decode($log['old_data'], true) : null;
+    $newData = $log['new_data'] ? json_decode($log['new_data'], true) : null;
+    
+    // Silme işlemini geri al: eski veri varsa tekrar INSERT et
+    if (str_starts_with($action, 'delete_') && $oldData && $table) {
+        // created_at/updated_at/id alanlarını temizle
+        $insertData = $oldData;
+        unset($insertData['created_at'], $insertData['updated_at']);
+        $hasId = isset($insertData['id']);
+        
+        $cols = array_keys($insertData);
+        $placeholders = array_fill(0, count($cols), '?');
+        $sql = "INSERT INTO `$table` (`" . implode('`, `', $cols) . "`) VALUES (" . implode(', ', $placeholders) . ")";
+        $stmt = $db->prepare($sql);
+        $stmt->execute(array_values($insertData));
+        return ['type' => 'restore', 'message' => 'Silinen kayıt geri yüklendi.'];
+    }
+    
+    // Düzenleme işlemini geri al: eski veri ile güncelle
+    if (str_starts_with($action, 'save_') && $oldData && $table && $recordId) {
+        $updateData = $oldData;
+        unset($updateData['id'], $updateData['created_at'], $updateData['updated_at']);
+        
+        $sets = [];
+        $vals = [];
+        foreach ($updateData as $col => $val) {
+            $sets[] = "`$col` = ?";
+            $vals[] = $val;
+        }
+        $vals[] = $recordId;
+        $sql = "UPDATE `$table` SET " . implode(', ', $sets) . " WHERE id = ?";
+        $stmt = $db->prepare($sql);
+        $stmt->execute($vals);
+        return ['type' => 'revert', 'message' => 'Değişiklik geri alındı.'];
+    }
+    
+    // Toggle işlemini geri al: eski duruma döndür
+    if (str_starts_with($action, 'toggle_') && $oldData && $table && $recordId) {
+        $sets = [];
+        $vals = [];
+        foreach ($oldData as $col => $val) {
+            if (in_array($col, ['id', 'created_at', 'updated_at'])) continue;
+            $sets[] = "`$col` = ?";
+            $vals[] = $val;
+        }
+        if (empty($sets)) throw new Exception('Geri alınacak veri bulunamadı.');
+        $vals[] = $recordId;
+        $sql = "UPDATE `$table` SET " . implode(', ', $sets) . " WHERE id = ?";
+        $stmt = $db->prepare($sql);
+        $stmt->execute($vals);
+        return ['type' => 'toggle_revert', 'message' => 'Durum değişikliği geri alındı.'];
+    }
+    
+    // Site ayarları geri al
+    if ($action === 'save_settings' && $oldData) {
+        foreach ($oldData as $key => $val) {
+            updateSetting($key, $val);
+        }
+        return ['type' => 'settings_revert', 'message' => 'Ayarlar geri alındı.'];
+    }
+    
+    throw new Exception('Bu işlem geri alınamaz. Eski veri kaydı bulunmuyor.');
+}
+
+function getAuditLogs($filters = []) {
+    try {
+        $db = getDB();
+        $where = [];
+        $params = [];
+        
+        if (!empty($filters['admin_id'])) {
+            $where[] = "admin_id = ?";
+            $params[] = (int)$filters['admin_id'];
+        }
+        if (!empty($filters['action'])) {
+            $where[] = "action = ?";
+            $params[] = $filters['action'];
+        }
+        if (!empty($filters['table_name'])) {
+            $where[] = "table_name = ?";
+            $params[] = $filters['table_name'];
+        }
+        if (!empty($filters['date_from'])) {
+            $where[] = "created_at >= ?";
+            $params[] = $filters['date_from'] . ' 00:00:00';
+        }
+        if (!empty($filters['date_to'])) {
+            $where[] = "created_at <= ?";
+            $params[] = $filters['date_to'] . ' 23:59:59';
+        }
+        if (!empty($filters['search'])) {
+            $where[] = "(action_label LIKE ? OR admin_username LIKE ?)";
+            $params[] = '%' . $filters['search'] . '%';
+            $params[] = '%' . $filters['search'] . '%';
+        }
+        
+        $sql = "SELECT * FROM admin_audit_log";
+        if ($where) $sql .= " WHERE " . implode(' AND ', $where);
+        $sql .= " ORDER BY created_at DESC";
+        
+        if (isset($filters['limit'])) {
+            $sql .= " LIMIT " . (int)$filters['limit'];
+            if (isset($filters['offset'])) {
+                $sql .= " OFFSET " . (int)$filters['offset'];
+            }
+        }
+        
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    } catch (Exception $e) {
+        return [];
+    }
+}
+
+function getAuditLogCount($filters = []) {
+    try {
+        $db = getDB();
+        $where = [];
+        $params = [];
+        
+        if (!empty($filters['admin_id'])) { $where[] = "admin_id = ?"; $params[] = (int)$filters['admin_id']; }
+        if (!empty($filters['action'])) { $where[] = "action = ?"; $params[] = $filters['action']; }
+        if (!empty($filters['table_name'])) { $where[] = "table_name = ?"; $params[] = $filters['table_name']; }
+        if (!empty($filters['date_from'])) { $where[] = "created_at >= ?"; $params[] = $filters['date_from'] . ' 00:00:00'; }
+        if (!empty($filters['date_to'])) { $where[] = "created_at <= ?"; $params[] = $filters['date_to'] . ' 23:59:59'; }
+        if (!empty($filters['search'])) { $where[] = "(action_label LIKE ? OR admin_username LIKE ?)"; $params[] = '%' . $filters['search'] . '%'; $params[] = '%' . $filters['search'] . '%'; }
+        
+        $sql = "SELECT COUNT(*) FROM admin_audit_log";
+        if ($where) $sql .= " WHERE " . implode(' AND ', $where);
+        
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        return (int)$stmt->fetchColumn();
+    } catch (Exception $e) {
+        return 0;
+    }
+}
+
+function getAuditLogById($id) {
+    try {
+        $db = getDB();
+        $stmt = $db->prepare("SELECT * FROM admin_audit_log WHERE id = ?");
+        $stmt->execute([$id]);
+        return $stmt->fetch();
+    } catch (Exception $e) {
+        return null;
+    }
+}
+
+function generateCronToken() {
+    $token = bin2hex(random_bytes(32));
+    updateSetting('cron_token', $token);
+    return $token;
+}
+
+function getCronToken() {
+    return getSetting('cron_token', '');
+}
+
 function getSetting($key, $default = '') {
     static $cache = [];
     if (isset($cache[$key])) return $cache[$key];
@@ -340,6 +539,44 @@ function deletePartner($id) {
         }
     }
     $stmt = $db->prepare("DELETE FROM partners WHERE id = ?");
+    return $stmt->execute([$id]);
+}
+
+// ==================== ŞUBELER ====================
+
+function getAllBranches($onlyActive = false) {
+    try {
+        $db = getDB();
+        $sql = "SELECT * FROM branches";
+        if ($onlyActive) $sql .= " WHERE is_active = 1";
+        $sql .= " ORDER BY is_headquarters DESC, sort_order ASC, id ASC";
+        return $db->query($sql)->fetchAll();
+    } catch (Exception $e) { return []; }
+}
+
+function getBranch($id) {
+    $db = getDB();
+    $stmt = $db->prepare("SELECT * FROM branches WHERE id = ?");
+    $stmt->execute([$id]);
+    return $stmt->fetch();
+}
+
+function saveBranch($data, $id = 0) {
+    $db = getDB();
+    if ($id > 0) {
+        $stmt = $db->prepare("UPDATE branches SET name=?, city=?, address=?, phone=?, phone_alt=?, email=?, maps_embed=?, maps_link=?, working_hours=?, is_headquarters=?, is_active=?, sort_order=?, updated_at=NOW() WHERE id=?");
+        $stmt->execute([$data['name'], $data['city'], $data['address'], $data['phone'], $data['phone_alt'], $data['email'], $data['maps_embed'], $data['maps_link'], $data['working_hours'], $data['is_headquarters'], $data['is_active'], $data['sort_order'], $id]);
+        return $id;
+    } else {
+        $stmt = $db->prepare("INSERT INTO branches (name, city, address, phone, phone_alt, email, maps_embed, maps_link, working_hours, is_headquarters, is_active, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$data['name'], $data['city'], $data['address'], $data['phone'], $data['phone_alt'], $data['email'], $data['maps_embed'], $data['maps_link'], $data['working_hours'], $data['is_headquarters'], $data['is_active'], $data['sort_order']]);
+        return $db->lastInsertId();
+    }
+}
+
+function deleteBranch($id) {
+    $db = getDB();
+    $stmt = $db->prepare("DELETE FROM branches WHERE id = ?");
     return $stmt->execute([$id]);
 }
 
@@ -795,6 +1032,33 @@ function deleteExternalNews($id) {
     $db = getDB();
     $stmt = $db->prepare("DELETE FROM external_news WHERE id = ?");
     return $stmt->execute([$id]);
+}
+
+function getLastNewsFetchTime() {
+    try {
+        $db = getDB();
+        $stmt = $db->query("SELECT MAX(updated_at) FROM external_news");
+        $val = $stmt->fetchColumn();
+        return $val ?: null;
+    } catch (Exception $e) {
+        return null;
+    }
+}
+
+function isNewsStale($intervalMinutes = 120) {
+    $lastFetch = getLastNewsFetchTime();
+    if (!$lastFetch) return true;
+    return (time() - strtotime($lastFetch)) > ($intervalMinutes * 60);
+}
+
+function autoRefreshNewsIfNeeded($intervalMinutes = 120) {
+    if (!isNewsStale($intervalMinutes)) return false;
+    try {
+        fetchAndCacheNews();
+        return true;
+    } catch (Exception $e) {
+        return false;
+    }
 }
 
 // ==================== KAMPANYALAR ====================

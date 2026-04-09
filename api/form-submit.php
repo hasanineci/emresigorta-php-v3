@@ -16,6 +16,37 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+// --- Sayfa sıralama ve parent güncelleme (AJAX) ---
+if (
+    isset($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false
+    && ($input = file_get_contents('php://input'))
+    && ($json = json_decode($input, true))
+    && isset($json['action']) && $json['action'] === 'save_page_order'
+    && isset($json['pages']) && is_array($json['pages'])
+) {
+    require_once __DIR__ . '/../includes/db.php';
+    $db = getDB();
+    $success = true;
+    try {
+        $db->beginTransaction();
+        foreach ($json['pages'] as $pg) {
+            $id = (int)($pg['id'] ?? 0);
+            $parent_id = (int)($pg['parent_id'] ?? 0);
+            $sort_order = (int)($pg['sort_order'] ?? 0);
+            if ($id > 0) {
+                $stmt = $db->prepare("UPDATE pages SET parent_id = ?, sort_order = ? WHERE id = ?");
+                $stmt->execute([$parent_id, $sort_order, $id]);
+            }
+        }
+        $db->commit();
+    } catch (Exception $e) {
+        $db->rollBack();
+        $success = false;
+    }
+    echo json_encode(['success' => $success]);
+    exit;
+}
+
 // CSRF kontrolü
 $csrfToken = $_POST[CSRF_TOKEN_NAME] ?? '';
 if (!validateCSRFToken($csrfToken)) {

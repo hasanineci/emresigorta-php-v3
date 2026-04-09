@@ -1,5 +1,5 @@
 # Robots.txt - Emre Sigorta (www.emresigorta.net)
-# Son güncelleme: 2026-03-24
+# Son güncelleme: 2026-04-09
 
 User-agent: *
 Allow: /
@@ -7,9 +7,12 @@ Allow: /
 # Sitemap
 Sitemap: https://www.emresigorta.net/sitemap.xml
 
-# Crawler erişimini engellenecek dosyalar
+# Crawler erişimini engellenecek dizinler
 Disallow: /includes/
 Disallow: /admin/
+Disallow: /api/
+Disallow: /logs/
+Disallow: /uploads/ruhsat/
 
 # Crawl delay
 Crawl-delay: 1

@@ -65,6 +65,13 @@ function adminLogin($username, $password) {
             $db->prepare("UPDATE admins SET last_login = NOW() WHERE id = ?")->execute([$admin['id']]);
             resetRateLimit('admin_login');
             logSecurityEvent('Admin giriş başarılı: ' . $username);
+            
+            // Her girişte yeni cron token oluştur
+            generateCronToken();
+            
+            // Giriş işlemini logla
+            logAdminAction('login', $admin['full_name'] . ' giriş yaptı', 'admins', $admin['id']);
+            
             return ['success' => true];
         }
     } catch (Exception $e) {
@@ -81,6 +88,7 @@ function adminLogin($username, $password) {
 }
 
 function adminLogout() {
+    logAdminAction('logout', ($_SESSION['admin_fullname'] ?? 'Bilinmiyor') . ' çıkış yaptı', 'admins', $_SESSION['admin_id'] ?? 0);
     logSecurityEvent('Admin çıkış: ' . ($_SESSION['admin_username'] ?? 'unknown'));
     $_SESSION = [];
     if (ini_get('session.use_cookies')) {

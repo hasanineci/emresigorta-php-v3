@@ -5,6 +5,9 @@
  */
 require_once __DIR__ . '/includes/config.php';
 
+// Arka planda haberleri güncelle (2 saatte bir)
+autoRefreshNewsIfNeeded(120);
+
 $newsSlug = isset($_GET['haber']) ? trim($_GET['haber']) : '';
 $newsId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
@@ -25,11 +28,28 @@ $pageTitle = htmlspecialchars($news['title'], ENT_QUOTES, 'UTF-8') . ' | Sigorta
 $pageDescription = mb_substr(strip_tags($news['excerpt']), 0, 160, 'UTF-8');
 $pageKeywords = 'sigorta haberleri, son dakika, sigorta sektörü';
 $ogType = 'article';
+$_newsImage = !empty($news['image_url']) ? $news['image_url'] : 'https://' . SITE_DOMAIN . SITE_LOGO;
 $pageSchema = '<script type="application/ld+json">' . getBreadcrumbSchema([
     ['name' => 'Ana Sayfa', 'url' => 'https://' . SITE_DOMAIN . '/'],
     ['name' => 'Blog', 'url' => 'https://' . SITE_DOMAIN . '/blog.php'],
     ['name' => $news['title']]
 ]) . '</script>';
+$pageSchema .= '<script type="application/ld+json">' . json_encode([
+    '@context' => 'https://schema.org',
+    '@type' => 'NewsArticle',
+    'headline' => $news['title'],
+    'description' => $pageDescription,
+    'image' => $_newsImage,
+    'datePublished' => date('c', strtotime($news['published_at'])),
+    'dateModified' => date('c', strtotime($news['fetched_at'] ?? $news['published_at'])),
+    'author' => ['@type' => 'Organization', 'name' => !empty($news['source']) ? $news['source'] : 'Sigorta Medya'],
+    'publisher' => [
+        '@type' => 'Organization',
+        'name' => SITE_NAME . ' Aracılık Hizmetleri',
+        'logo' => ['@type' => 'ImageObject', 'url' => 'https://' . SITE_DOMAIN . SITE_LOGO]
+    ],
+    'mainEntityOfPage' => ['@type' => 'WebPage', '@id' => 'https://' . SITE_DOMAIN . '/haber.php?haber=' . $news['slug']]
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>';
 
 include 'includes/header.php';
 ?>

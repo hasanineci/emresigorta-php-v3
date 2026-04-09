@@ -1,6 +1,9 @@
 <?php
 require_once __DIR__ . '/includes/config.php'; 
 
+// Arka planda haberleri güncelle (2 saatte bir)
+autoRefreshNewsIfNeeded(120);
+
 // Tekil yazı görüntüleme
 $singleSlug = isset($_GET['yazi']) ? trim($_GET['yazi']) : '';
 if ($singleSlug) {
@@ -14,11 +17,28 @@ if ($singleSlug) {
     $pageDescription = $singlePost['meta_description'] ?: mb_substr(strip_tags($singlePost['excerpt']), 0, 160, 'UTF-8');
     $pageKeywords = 'sigorta blog, ' . htmlspecialchars($singlePost['title'], ENT_QUOTES, 'UTF-8');
     $ogType = 'article';
+    $_articleImage = !empty($singlePost['featured_image']) ? 'https://' . SITE_DOMAIN . '/' . $singlePost['featured_image'] : 'https://' . SITE_DOMAIN . SITE_LOGO;
     $pageSchema = '<script type="application/ld+json">' . getBreadcrumbSchema([
         ['name' => 'Ana Sayfa', 'url' => 'https://' . SITE_DOMAIN . '/'],
         ['name' => 'Blog', 'url' => 'https://' . SITE_DOMAIN . '/blog.php'],
         ['name' => $singlePost['title']]
     ]) . '</script>';
+    $pageSchema .= '<script type="application/ld+json">' . json_encode([
+        '@context' => 'https://schema.org',
+        '@type' => 'Article',
+        'headline' => $singlePost['title'],
+        'description' => $pageDescription,
+        'image' => $_articleImage,
+        'datePublished' => date('c', strtotime($singlePost['published_at'])),
+        'dateModified' => date('c', strtotime($singlePost['updated_at'] ?? $singlePost['published_at'])),
+        'author' => ['@type' => 'Organization', 'name' => SITE_NAME . ' Aracılık Hizmetleri'],
+        'publisher' => [
+            '@type' => 'Organization',
+            'name' => SITE_NAME . ' Aracılık Hizmetleri',
+            'logo' => ['@type' => 'ImageObject', 'url' => 'https://' . SITE_DOMAIN . SITE_LOGO]
+        ],
+        'mainEntityOfPage' => ['@type' => 'WebPage', '@id' => 'https://' . SITE_DOMAIN . '/blog.php?yazi=' . $singlePost['slug']]
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>';
 
     // İlgili yazılar (aynı kategoriden, kendisi hariç)
     $relatedPosts = getAllBlogPosts(['is_active' => 1, 'category_id' => $singlePost['category_id'], 'limit' => 3]);

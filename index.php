@@ -384,7 +384,7 @@ require_once 'includes/header.php';
                 </span>
                 <h2 class="section-title mb-3">Neden Emre Sigorta'yı <br>Tercih Etmelisiniz?</h2>
                 <p class="text-muted mb-4">Şanlıurfa'nın güvenilir sigorta acentesi olarak, <?php echo SITE_FOUNDED; ?> yılından bu yana sektördeki deneyimimizle müşterilerimize en iyi hizmeti sunuyoruz.</p>
-                <img src="assets/images/team.jpg" alt="Emre Sigorta Ekibi" class="img-fluid rounded-4 shadow-lg img-section">
+                <img src="assets/images/team.jpg" alt="Emre Sigorta Ekibi" class="img-fluid rounded-4 shadow-lg img-section" loading="lazy">
             </div>
             <div class="col-lg-7">
                 <div class="row g-4">
@@ -475,7 +475,7 @@ require_once 'includes/header.php';
         <!-- Trafik Sigortası Detail -->
         <div class="row align-items-center g-5 mb-5">
             <div class="col-lg-6" data-aos="fade-right">
-                <img src="assets/images/trafik.jpg" alt="Trafik Sigortası" class="img-fluid rounded-4 shadow-lg img-section">
+                <img src="assets/images/trafik.jpg" alt="Trafik Sigortası" class="img-fluid rounded-4 shadow-lg img-section" loading="lazy">
             </div>
             <div class="col-lg-6" data-aos="fade-left">
                 <span class="badge bg-primary bg-opacity-10 text-primary fs-6 mb-3 px-3 py-2 rounded-pill">
@@ -498,7 +498,7 @@ require_once 'includes/header.php';
         <!-- Kasko Detail -->
         <div class="row align-items-center g-5 mb-5 flex-lg-row-reverse">
             <div class="col-lg-6" data-aos="fade-left">
-                <img src="assets/images/kasko.jpg" alt="Kasko Sigortası" class="img-fluid rounded-4 shadow-lg img-section">
+                <img src="assets/images/kasko.jpg" alt="Kasko Sigortası" class="img-fluid rounded-4 shadow-lg img-section" loading="lazy">
             </div>
             <div class="col-lg-6" data-aos="fade-right">
                 <span class="badge bg-success bg-opacity-10 text-success fs-6 mb-3 px-3 py-2 rounded-pill">
@@ -521,7 +521,7 @@ require_once 'includes/header.php';
         <!-- Sağlık Sigortası Detail -->
         <div class="row align-items-center g-5">
             <div class="col-lg-6" data-aos="fade-right">
-                <img src="assets/images/saglik.jpg" alt="Sağlık Sigortası" class="img-fluid rounded-4 shadow-lg img-section">
+                <img src="assets/images/saglik.jpg" alt="Sağlık Sigortası" class="img-fluid rounded-4 shadow-lg img-section" loading="lazy">
             </div>
             <div class="col-lg-6" data-aos="fade-left">
                 <span class="badge bg-danger bg-opacity-10 text-danger fs-6 mb-3 px-3 py-2 rounded-pill">

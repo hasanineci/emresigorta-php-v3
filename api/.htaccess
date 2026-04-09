@@ -1,0 +1,16 @@
+# API dizini güvenliği - Sadece kendi sitemizden gelen AJAX isteklerine izin ver
+Options -Indexes
+
+# Dizin listelemeyi engelle
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Sadece POST ve GET isteklerine izin ver
+    RewriteCond %{REQUEST_METHOD} !^(GET|POST)$ [NC]
+    RewriteRule .* - [F,L]
+</IfModule>
+
+# PHP dışı dosyalara erişimi engelle
+<FilesMatch "\.(?!php$)">
+    Require all denied
+</FilesMatch>

@@ -7,17 +7,29 @@ document.addEventListener('DOMContentLoaded', function() {
     // Sidebar toggle (mobile)
     const toggle = document.getElementById('sidebarToggle');
     const sidebar = document.getElementById('adminSidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    
+    function openSidebar() {
+        sidebar.classList.add('show');
+        overlay.classList.add('show');
+    }
+    function closeSidebar() {
+        sidebar.classList.remove('show');
+        overlay.classList.remove('show');
+    }
+    
     if (toggle && sidebar) {
         toggle.addEventListener('click', function() {
-            sidebar.classList.toggle('show');
-        });
-        document.addEventListener('click', function(e) {
-            if (window.innerWidth < 992 && sidebar.classList.contains('show') 
-                && !sidebar.contains(e.target) && !toggle.contains(e.target)) {
-                sidebar.classList.remove('show');
-            }
+            sidebar.classList.contains('show') ? closeSidebar() : openSidebar();
         });
     }
+    if (overlay) {
+        overlay.addEventListener('click', closeSidebar);
+    }
+    // Close sidebar on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && sidebar.classList.contains('show')) closeSidebar();
+    });
     
     // Session timeout uyarısı (25 dakikada)
     setTimeout(function() {

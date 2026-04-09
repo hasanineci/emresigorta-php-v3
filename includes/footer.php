@@ -96,7 +96,6 @@
                 <div class="d-flex justify-content-center justify-content-md-end gap-3 align-items-center">
                     <span class="badge bg-secondary bg-opacity-25 text-white-50 px-3 py-2"><i class="fa-solid fa-shield-halved me-1"></i> SSL Güvenli</span>
                     <span class="badge bg-secondary bg-opacity-25 text-white-50 px-3 py-2"><i class="fa-solid fa-lock me-1"></i> 256-Bit Şifreleme</span>
-                    <a href="<?php echo SITE_URL; ?>/admin/" class="badge bg-secondary bg-opacity-10 text-white-50 px-3 py-2 text-decoration-none" title="Yönetim Paneli" style="transition: all .3s; opacity: 0.5;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.5'"><i class="fa-solid fa-user-shield me-1"></i> Giriş</a>
                 </div>
             </div>
         </div>

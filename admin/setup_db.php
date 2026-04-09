@@ -139,13 +139,13 @@ $pages = [
     ['blog.php', 'Blog', 'Sigorta Blog', 'Sigorta hakkında bilgiler.', 'sigorta blog', 'genel', 21],
     ['hakkimizda.php', 'Hakkımızda', 'Hakkımızda', 'Emre Sigorta hakkında.', 'hakkımızda', 'genel', 22],
     ['sss.php', 'SSS', 'Sıkça Sorulan Sorular', 'Sigorta ile ilgili SSS.', 'sss', 'genel', 23],
-    ['iletisim.php', 'İletişim', 'İletişim', 'İletişim bilgileri.', 'iletişim', 'genel', 24],
     ['sube-basvurusu.php', 'Şube Başvurusu', 'Şube Başvurusu', 'Şube başvuru formu.', 'şube başvurusu', 'genel', 25],
     ['kvkk.php', 'KVKK', 'KVKK Aydınlatma Metni', 'KVKK aydınlatma.', 'kvkk', 'yasal', 26],
     ['gizlilik.php', 'Gizlilik Politikası', 'Gizlilik Politikası', 'Gizlilik politikası.', 'gizlilik', 'yasal', 27],
     ['cerez-politikasi.php', 'Çerez Politikası', 'Çerez Politikası', 'Çerez politikası.', 'çerez', 'yasal', 28],
     ['acik-riza.php', 'Açık Rıza Metni', 'Açık Rıza Metni', 'Açık rıza metni.', 'açık rıza', 'yasal', 29],
     ['mesafeli-satis.php', 'Mesafeli Satış', 'Mesafeli Satış Sözleşmesi', 'Mesafeli satış sözleşmesi.', 'mesafeli satış', 'yasal', 30],
+    ['kullanim-sartlari.php', 'Kullanım Şartları', 'Kullanım Şartları', 'Web sitesi kullanım şartları.', 'kullanım şartları', 'yasal', 31],
 ];
 
 $stmt = $pdo->prepare("INSERT IGNORE INTO pages (slug, title, seo_title, seo_description, seo_keywords, category, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)");

@@ -1,39 +1,53 @@
-# ==========================================
-# Emre Sigorta - Apache Güvenlik Yapılandırması
-# ==========================================
 
-# Dizin listelemeyi kapat
-Options -Indexes -ExecCGI
+# === GENEL DİZİN VE DOSYA KORUMALARI ===
+# Dizin listelemeyi kapat, CGI çalıştırmayı engelle, symbolic link desteği
+Options -Indexes -ExecCGI +FollowSymLinks
 
 # .htaccess dosyalarına erişimi engelle
 <Files ".htaccess">
     Require all denied
 </Files>
 
-# Config ve güvenlik dosyalarına direkt erişimi engelle
+# includes, logs, admin/includes altındaki hassas dosya tiplerine erişimi engelle
 <FilesMatch "\.(php|log|sql|bak|config|ini|sh|env)$">
     <If "%{REQUEST_URI} =~ m#^/(includes|logs|admin/includes)/#">
         Require all denied
     </If>
 </FilesMatch>
 
-# Log dosyalarına erişimi engelle
+# === HATA YÖNLENDİRMELERİ ===
+# Tüm 404 ve 403 hatalarında özel 404.php göster
+ErrorDocument 404 /404.php
+ErrorDocument 403 /404.php
+
+# === APACHE REWRITE GÜVENLİK KURALLARI ===
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    
-    # logs dizinine erişimi engelle
+
+    # logs dizinine erişimi tamamen engelle
     RewriteRule ^logs/ - [F,L]
-    
+
     # includes dizinine doğrudan erişimi engelle
     RewriteRule ^includes/ - [F,L]
-    
+
     # admin/includes dizinine doğrudan erişimi engelle
     RewriteRule ^admin/includes/ - [F,L]
-    
-    # Hassas dosyalara erişimi engelle
-    RewriteRule \.(env|log|sql|bak|config|ini)$ - [F,L]
-    
-    # URL'de script injection'ı engelle
+
+    # API dizinine dışarıdan erişimi engelle (sadece kendi sitemizden AJAX)
+    RewriteCond %{HTTP_REFERER} !^https?://(localhost|www\.emresigorta\.net) [NC]
+    RewriteRule ^api/ - [F,L]
+
+    # uploads/ruhsat dizinine dışarıdan erişimi engelle
+    RewriteRule ^uploads/ruhsat/ - [F,L]
+
+    # uploads ve assets altında PHP dosyası çalıştırmayı engelle (dosya yükleme saldırılarına karşı)
+    RewriteRule ^assets/.*\.php$ - [F,L]
+    RewriteRule ^uploads/.*\.php$ - [F,L]
+
+    # Hassas dosya uzantılarına erişimi engelle (env, log, sql, bak, config, ini, dist, old, tmp, swp)
+    RewriteRule \.(env|log|sql|bak|config|ini|dist|old|tmp|swp)$ - [F,L]
+
+    # Zararlı query string ve script injection denemelerini engelle
     RewriteCond %{QUERY_STRING} (<script|%3Cscript) [NC,OR]
     RewriteCond %{QUERY_STRING} (javascript:) [NC,OR]
     RewriteCond %{QUERY_STRING} (vbscript:) [NC,OR]
@@ -47,13 +61,15 @@ Options -Indexes -ExecCGI
     RewriteCond %{QUERY_STRING} (base64_encode) [NC,OR]
     RewriteCond %{QUERY_STRING} (GLOBALS|_REQUEST|_GET|_POST|_FILES|_COOKIE|_SERVER|_ENV) [NC]
     RewriteRule .* - [F,L]
-    
-    # HTTP_HOST manipülasyonunu engelle
+
+    # HTTP_HOST manipülasyonunu engelle (sadece kendi domainlerinden erişim)
     RewriteCond %{HTTP_HOST} !^(localhost|www\.emresigorta\.net)$ [NC]
     RewriteRule .* - [F,L]
-    
-    # Dosya yükleme saldırılarını engelle (PHP dosya yürütme)
-    RewriteRule ^assets/.*\.php$ - [F,L]
+
+    # Var olmayan dosya veya dizinler için özel 404.php göster
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ /404.php [L]
 </IfModule>
 
 # Güvenlik Başlıkları
