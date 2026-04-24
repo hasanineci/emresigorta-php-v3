@@ -14,6 +14,7 @@ if ($_currentSlug !== 'index.php' && $_currentSlug !== '404.php' && !isPageActiv
 <html lang="tr" dir="ltr">
 <head>
     <meta charset="UTF-8">
+    <base href="<?php echo SITE_URL; ?>/">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="description" content="<?php echo isset($pageDescription) ? htmlspecialchars($pageDescription, ENT_QUOTES, 'UTF-8') : SITE_NAME . ' - Şanlıurfa\'nın güvenilir sigorta acentesi. Trafik sigortası, kasko, DASK, sağlık sigortası ve daha fazlası için en uygun fiyat tekliflerini alın.'; ?>">
@@ -130,8 +131,8 @@ if ($_currentSlug !== 'index.php' && $_currentSlug !== '404.php' && !isPageActiv
     <title><?php echo isset($pageTitle) ? htmlspecialchars(getPageTitle($pageTitle), ENT_QUOTES, 'UTF-8') : htmlspecialchars(getPageTitle(), ENT_QUOTES, 'UTF-8'); ?></title>
     
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="<?php echo SITE_URL . SITE_FAVICON; ?>">
-    <link rel="apple-touch-icon" href="<?php echo SITE_URL . SITE_FAVICON; ?>">
+    <link rel="icon" type="image/png" href="<?php echo SITE_FAVICON; ?>">
+    <link rel="apple-touch-icon" href="<?php echo SITE_FAVICON; ?>">
     
     <!-- DNS Prefetch & Preconnect -->
     <link rel="dns-prefetch" href="//fonts.googleapis.com">
@@ -154,8 +155,8 @@ if ($_currentSlug !== 'index.php' && $_currentSlug !== '404.php' && !isPageActiv
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/variables.css">
-    <link rel="stylesheet" href="<?php echo SITE_URL; ?>/assets/css/style.css">
+    <link rel="stylesheet" href="/assets/css/variables.css">
+    <link rel="stylesheet" href="/assets/css/style.css">
     
     <!-- CSRF Token & Site URL (JS için) -->
     <meta name="csrf-token" content="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
@@ -286,9 +287,6 @@ if ($_currentSlug !== 'index.php' && $_currentSlug !== '404.php' && !isPageActiv
                 <a href="tel:<?php echo SITE_PHONE_RAW; ?>" class="btn btn-phone-header">
                     <span class="btn-phone-icon"><i class="fa-solid fa-phone"></i></span>
                     <span><?php echo SITE_PHONE; ?></span>
-                </a>
-                <a href="<?php echo SITE_URL; ?>/admin/" class="btn-admin-header" title="Yönetim Paneli">
-                    <i class="fa-solid fa-user-shield"></i>
                 </a>
             </div>
         </div>

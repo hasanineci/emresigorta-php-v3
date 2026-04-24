@@ -766,7 +766,7 @@ try {
 
     echo "✅ Toplam {$mahCount} mahalle eklendi.<br>";
     echo "<br><strong>🎉 Mahalle veritabanı başarıyla oluşturuldu!</strong><br>";
-    echo "<br><a href='/yenitasarim/admin/'>← Admin Paneline Dön</a>";
+    echo "<br><a href='/' . ADMIN_SLUG . '/'>← Admin Paneline Dön</a>";
 
 } catch (Exception $e) {
     echo "❌ Hata: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');

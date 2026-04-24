@@ -140,7 +140,7 @@ try {
     }
 
     echo "<br><strong>🎉 Veritabanı güncellemesi başarıyla tamamlandı!</strong><br>";
-    echo "<br><a href='" . (defined('SITE_URL') ? SITE_URL : '') . "/admin/index.php'>← Admin Paneline Dön</a>";
+    echo "<br><a href='" . (defined('ADMIN_URL') ? ADMIN_URL : '') . "/index.php'>← Admin Paneline Dön</a>";
     
 } catch (Exception $e) {
     echo "❌ Hata: " . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');

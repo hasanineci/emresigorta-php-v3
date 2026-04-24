@@ -1,6 +1,0 @@
-{
-  "github.copilot.chat.agent.enabled": true,
-  "github.copilot.chat.editing.enabled": true,
-  "github.copilot.chat.experimental.workspaceAutoContext": true
-
-}

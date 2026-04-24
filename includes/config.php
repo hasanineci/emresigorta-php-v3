@@ -16,8 +16,27 @@ function _s($key, $default = '') {
 }
 
 define('SITE_NAME', _s('site_name', 'Emre Sigorta'));
-define('SITE_URL', _s('site_url', 'http://localhost/yenitasarim'));
-define('SITE_DOMAIN', _s('site_domain', 'www.emresigorta.net'));
+// SITE_URL ve SITE_DOMAIN: sunucu ortamından otomatik tespit
+$_autoHost = $_SERVER['HTTP_HOST'] ?? 'www.emresigorta.net';
+$_autoScheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+// Proje kök dizini ile document root arasındaki farkı bul (alt dizin tespiti)
+$_projectRoot = str_replace('\\', '/', realpath(__DIR__ . '/..'));
+$_docRoot = str_replace('\\', '/', realpath($_SERVER['DOCUMENT_ROOT'] ?? ''));
+$_basePath = '';
+if ($_projectRoot && $_docRoot && strpos($_projectRoot, $_docRoot) === 0) {
+    $_basePath = substr($_projectRoot, strlen($_docRoot));
+}
+// Production (emresigorta.net) her zaman https ve root'ta çalışır
+if (strpos($_autoHost, 'localhost') === false && strpos($_autoHost, '127.0.0.1') === false) {
+    $_basePath = '';
+    $_autoScheme = 'https';
+}
+define('SITE_URL', $_autoScheme . '://' . $_autoHost . $_basePath);
+define('SITE_DOMAIN', $_autoHost);
+define('ADMIN_SLUG', 'poyrazlogin');
+define('ADMIN_URL', SITE_URL . '/' . ADMIN_SLUG);
+define('TURNSTILE_SITE_KEY', _s('turnstile_site_key', ''));
+define('TURNSTILE_SECRET_KEY', _s('turnstile_secret_key', ''));
 define('SITE_EMAIL', _s('site_email', 'info@emresigorta.net'));
 define('SITE_EMAIL_ALT', _s('site_email_alt', 'hasanineci@gmail.com'));
 define('SITE_PHONE', _s('site_phone', '0541 514 85 15'));

@@ -455,7 +455,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = 'Yetkiniz yok.'; $messageType = 'danger';
         } else {
             $userId = (int)($_POST['user_id'] ?? 0);
-            if ($userId > 0 && $userId !== (int)($_SESSION['admin_id'] ?? 0)) {
+            if ($userId <= 0) {
+                if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['success' => false, 'message' => 'Geçersiz kullanıcı.']); exit; }
+                $message = 'Geçersiz kullanıcı.'; $messageType = 'danger';
+            } elseif ($userId === 1) {
+                if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['success' => false, 'message' => 'Ana yönetici hesabı silinemez.']); exit; }
+                $message = 'Ana yönetici hesabı silinemez.'; $messageType = 'danger';
+            } elseif ($userId === (int)($_SESSION['admin_id'] ?? 0)) {
+                if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['success' => false, 'message' => 'Kendi hesabınızı silemezsiniz.']); exit; }
+                $message = 'Kendi hesabınızı silemezsiniz.'; $messageType = 'danger';
+            } else {
                 try {
                     deleteUser($userId);
                     if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['success' => true, 'message' => 'Kullanıcı silindi.']); exit; }
@@ -463,14 +472,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $messageType = 'success';
                     logSecurityEvent('Kullanıcı silindi: ID ' . $userId);
                 } catch (Exception $e) {
-                    if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['success' => false, 'message' => 'Silme hatası.']); exit; }
-                    $message = 'Silme hatası.';
+                    if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['success' => false, 'message' => $e->getMessage()]); exit; }
+                    $message = $e->getMessage();
                     $messageType = 'danger';
                 }
-            } else {
-                if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['success' => false, 'message' => 'Kendi hesabınızı silemezsiniz.']); exit; }
-                $message = 'Kendi hesabınızı veya ana yöneticiyi silemezsiniz.';
-                $messageType = 'danger';
             }
         }
     }
@@ -574,7 +579,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['admin_message'] = $uploadErrMsg;
                     $_SESSION['admin_message_type'] = 'danger';
                     $redirectPage = $partnerId > 0 ? 'is-ortagi-duzenle&id=' . $partnerId : 'is-ortagi-ekle';
-                    header('Location: ' . SITE_URL . '/admin/dashboard.php?page=' . $redirectPage);
+                    header('Location: ' . ADMIN_URL . '/dashboard.php?page=' . $redirectPage);
                     exit;
                 }
             }
@@ -584,7 +589,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     savePartner($partnerData, $partnerId);
                     $_SESSION['admin_message'] = $partnerId > 0 ? 'İş ortağı güncellendi.' : 'Yeni iş ortağı eklendi.';
                     $_SESSION['admin_message_type'] = 'success';
-                    header('Location: ' . SITE_URL . '/admin/dashboard.php?page=is-ortaklari');
+                    header('Location: ' . ADMIN_URL . '/dashboard.php?page=is-ortaklari');
                     exit;
                 } catch (Exception $e) {
                     $message = 'Kaydetme hatası.';
@@ -669,7 +674,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['success' => true, 'message' => $socialId > 0 ? 'Sosyal medya güncellendi.' : 'Yeni sosyal medya eklendi.']); exit; }
                 $_SESSION['admin_message'] = $socialId > 0 ? 'Sosyal medya güncellendi.' : 'Yeni sosyal medya eklendi.';
                 $_SESSION['admin_message_type'] = 'success';
-                header('Location: ' . SITE_URL . '/admin/dashboard.php?page=sosyal-medya');
+                header('Location: ' . ADMIN_URL . '/dashboard.php?page=sosyal-medya');
                 exit;
             } catch (Exception $e) {
                 if ($isAjax) { header('Content-Type: application/json'); echo json_encode(['success' => false, 'message' => 'Kaydetme hatası.']); exit; }
@@ -729,7 +734,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 saveTestimonial($testimonialData, $testimonialId);
                 $_SESSION['admin_message'] = $testimonialId > 0 ? 'Yorum güncellendi.' : 'Yeni yorum eklendi.';
                 $_SESSION['admin_message_type'] = 'success';
-                header('Location: ' . SITE_URL . '/admin/dashboard.php?page=yorumlar');
+                header('Location: ' . ADMIN_URL . '/dashboard.php?page=yorumlar');
                 exit;
             } catch (Exception $e) {
                 $message = 'Kaydetme hatası.';
@@ -814,7 +819,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 saveFaqCategory($catData, $catId);
                 $_SESSION['admin_message'] = $catId > 0 ? 'Kategori güncellendi.' : 'Yeni kategori eklendi.';
                 $_SESSION['admin_message_type'] = 'success';
-                header('Location: ' . SITE_URL . '/admin/dashboard.php?page=sss-kategoriler');
+                header('Location: ' . ADMIN_URL . '/dashboard.php?page=sss-kategoriler');
                 exit;
             } catch (Exception $e) {
                 $message = 'Kaydetme hatası.';
@@ -859,7 +864,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 saveFaq($faqData, $faqId);
                 $_SESSION['admin_message'] = $faqId > 0 ? 'Soru güncellendi.' : 'Yeni soru eklendi.';
                 $_SESSION['admin_message_type'] = 'success';
-                header('Location: ' . SITE_URL . '/admin/dashboard.php?page=sss');
+                header('Location: ' . ADMIN_URL . '/dashboard.php?page=sss');
                 exit;
             } catch (Exception $e) {
                 $message = 'Kaydetme hatası.';
@@ -956,7 +961,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['admin_message'] = 'Hata: ' . $e->getMessage();
             $_SESSION['admin_message_type'] = 'danger';
         }
-        header('Location: ' . SITE_URL . '/admin/dashboard.php?page=blog-kategoriler');
+        header('Location: ' . ADMIN_URL . '/dashboard.php?page=blog-kategoriler');
         exit;
     }
 
@@ -1028,7 +1033,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['admin_message'] = 'Hata: ' . $e->getMessage();
             $_SESSION['admin_message_type'] = 'danger';
         }
-        header('Location: ' . SITE_URL . '/admin/dashboard.php?page=blog');
+        header('Location: ' . ADMIN_URL . '/dashboard.php?page=blog');
         exit;
     }
 
@@ -1180,7 +1185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 saveCampaign($campData, $campaignId);
                 $_SESSION['admin_message'] = $campaignId > 0 ? 'Kampanya güncellendi.' : 'Yeni kampanya eklendi.';
                 $_SESSION['admin_message_type'] = 'success';
-                header('Location: ' . SITE_URL . '/admin/dashboard.php?page=kampanyalar');
+                header('Location: ' . ADMIN_URL . '/dashboard.php?page=kampanyalar');
                 exit;
             } catch (Exception $e) {
                 $message = 'Kaydetme hatası: ' . $e->getMessage();
@@ -1266,7 +1271,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_recordId = $branchId ?: $newId;
                 $_SESSION['admin_message'] = $branchId > 0 ? 'Şube güncellendi.' : 'Yeni şube eklendi.';
                 $_SESSION['admin_message_type'] = 'success';
-                header('Location: ' . SITE_URL . '/admin/dashboard.php?page=subeler');
+                header('Location: ' . ADMIN_URL . '/dashboard.php?page=subeler');
                 exit;
             } catch (Exception $e) {
                 $message = 'Kaydetme hatası: ' . $e->getMessage();
@@ -2187,7 +2192,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <td style="font-size: 13px;"><?php echo date('d.m.Y', strtotime($usr['created_at'])); ?></td>
                             <td class="text-center">
                                 <a href="?page=kullanici-duzenle&id=<?php echo $usr['id']; ?>" class="btn btn-sm btn-outline-primary py-0 px-2" title="Düzenle"><i class="fas fa-edit"></i></a>
-                                <?php if ($usr['id'] !== (int)($_SESSION['admin_id'] ?? 0) && $usr['id'] !== 1): ?>
+                                <?php if ((int)$usr['id'] !== (int)($_SESSION['admin_id'] ?? 0) && (int)$usr['id'] !== 1): ?>
                                 <button class="btn btn-sm btn-outline-danger py-0 px-2 btn-delete-user" data-id="<?php echo $usr['id']; ?>" data-name="<?php echo htmlspecialchars($usr['username'], ENT_QUOTES, 'UTF-8'); ?>" title="Sil"><i class="fas fa-trash"></i></button>
                                 <?php endif; ?>
                             </td>
@@ -2617,7 +2622,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     <div class="card border-0 shadow-sm" style="border-radius: 12px;">
         <div class="card-body p-4">
-            <form method="POST" action="<?php echo SITE_URL; ?>/admin/dashboard.php?page=is-ortaklari" enctype="multipart/form-data">
+            <form method="POST" action="<?php echo ADMIN_URL; ?>/dashboard.php?page=is-ortaklari" enctype="multipart/form-data">
                 <?php echo getCSRFTokenField(); ?>
                 <input type="hidden" name="action" value="save_partner">
                 <?php if ($isPartnerEdit): ?><input type="hidden" name="partner_id" value="<?php echo $editPartner['id']; ?>"><?php endif; ?>
@@ -2782,7 +2787,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     <div class="card border-0 shadow-sm" style="border-radius: 12px;">
         <div class="card-body p-4">
-            <form method="POST" action="<?php echo SITE_URL; ?>/admin/dashboard.php?page=sosyal-medya" id="socialForm">
+            <form method="POST" action="<?php echo ADMIN_URL; ?>/dashboard.php?page=sosyal-medya" id="socialForm">
                 <?php echo getCSRFTokenField(); ?>
                 <input type="hidden" name="action" value="save_social">
                 <?php if ($isSocialEdit): ?><input type="hidden" name="social_id" value="<?php echo $editSocial['id']; ?>"><?php endif; ?>
@@ -3090,7 +3095,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     <div class="card border-0 shadow-sm" style="border-radius: 12px;">
         <div class="card-body p-4">
-            <form method="POST" action="<?php echo SITE_URL; ?>/admin/dashboard.php?page=yorumlar">
+            <form method="POST" action="<?php echo ADMIN_URL; ?>/dashboard.php?page=yorumlar">
                 <?php echo getCSRFTokenField(); ?>
                 <input type="hidden" name="action" value="save_testimonial">
                 <input type="hidden" name="testimonial_id" value="<?php echo $isTestimonialEdit ? $testimonialData['id'] : 0; ?>">
@@ -3256,7 +3261,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     <div class="card border-0 shadow-sm" style="border-radius: 12px;">
         <div class="card-body p-4">
-            <form method="POST" action="<?php echo SITE_URL; ?>/admin/dashboard.php?page=sss">
+            <form method="POST" action="<?php echo ADMIN_URL; ?>/dashboard.php?page=sss">
                 <?php echo getCSRFTokenField(); ?>
                 <input type="hidden" name="action" value="save_faq">
                 <input type="hidden" name="faq_id" value="<?php echo $isFaqEdit ? $faqData['id'] : 0; ?>">
@@ -3403,7 +3408,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     <div class="card border-0 shadow-sm" style="border-radius: 12px;">
         <div class="card-body p-4">
-            <form method="POST" action="<?php echo SITE_URL; ?>/admin/dashboard.php?page=sss-kategoriler">
+            <form method="POST" action="<?php echo ADMIN_URL; ?>/dashboard.php?page=sss-kategoriler">
                 <?php echo getCSRFTokenField(); ?>
                 <input type="hidden" name="action" value="save_faq_category">
                 <input type="hidden" name="category_id" value="<?php echo $isCatEdit ? $catData['id'] : 0; ?>">
@@ -3558,7 +3563,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <a href="?page=blog" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i> Geri</a>
     </div>
 
-    <form method="POST" action="<?php echo SITE_URL; ?>/admin/dashboard.php?page=blog" enctype="multipart/form-data">
+    <form method="POST" action="<?php echo ADMIN_URL; ?>/dashboard.php?page=blog" enctype="multipart/form-data">
         <?php echo getCSRFTokenField(); ?>
         <input type="hidden" name="action" value="save_blog_post">
         <input type="hidden" name="post_id" value="<?php echo $isBlogEdit ? $blogData['id'] : 0; ?>">
@@ -3785,7 +3790,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     <div class="card border-0 shadow-sm" style="border-radius: 12px;">
         <div class="card-body p-4">
-            <form method="POST" action="<?php echo SITE_URL; ?>/admin/dashboard.php?page=blog-kategoriler">
+            <form method="POST" action="<?php echo ADMIN_URL; ?>/dashboard.php?page=blog-kategoriler">
                 <?php echo getCSRFTokenField(); ?>
                 <input type="hidden" name="action" value="save_blog_category">
                 <input type="hidden" name="category_id" value="<?php echo $isBlogCatEdit ? $blogCatData['id'] : 0; ?>">
@@ -4055,7 +4060,7 @@ document.querySelectorAll('.toggle-branch').forEach(function(el) {
     </div>
     <div class="card border-0 shadow-sm" style="border-radius:12px;">
         <div class="card-body p-4">
-            <form method="POST" action="<?php echo SITE_URL; ?>/admin/dashboard.php?page=subeler">
+            <form method="POST" action="<?php echo ADMIN_URL; ?>/dashboard.php?page=subeler">
                 <?php echo getCSRFTokenField(); ?>
                 <input type="hidden" name="action" value="save_branch">
                 <?php if ($isEditBranch): ?>
@@ -4350,7 +4355,7 @@ document.querySelectorAll('.toggle-branch').forEach(function(el) {
                     <h5 class="mb-0 fw-bold"><i class="fas fa-bullhorn text-primary me-2"></i>Kampanyalar</h5>
                     <small class="text-muted">Toplam <?php echo count($allCampaigns); ?> kampanya</small>
                 </div>
-                <a href="<?php echo SITE_URL; ?>/admin/dashboard.php?page=kampanya-ekle" class="btn btn-primary btn-sm">
+                <a href="<?php echo ADMIN_URL; ?>/dashboard.php?page=kampanya-ekle" class="btn btn-primary btn-sm">
                     <i class="fas fa-plus me-1"></i> Yeni Kampanya
                 </a>
             </div>
@@ -4418,7 +4423,7 @@ document.querySelectorAll('.toggle-branch').forEach(function(el) {
                                 </div>
                             </td>
                             <td>
-                                <a href="<?php echo SITE_URL; ?>/admin/dashboard.php?page=kampanya-duzenle&id=<?php echo $camp['id']; ?>" class="btn btn-outline-primary btn-sm" title="Düzenle"><i class="fas fa-edit"></i></a>
+                                <a href="<?php echo ADMIN_URL; ?>/dashboard.php?page=kampanya-duzenle&id=<?php echo $camp['id']; ?>" class="btn btn-outline-primary btn-sm" title="Düzenle"><i class="fas fa-edit"></i></a>
                                 <button class="btn btn-outline-danger btn-sm btn-delete-campaign" data-id="<?php echo $camp['id']; ?>" data-name="<?php echo htmlspecialchars($camp['title'], ENT_QUOTES, 'UTF-8'); ?>"><i class="fas fa-trash"></i></button>
                             </td>
                         </tr>
@@ -4439,7 +4444,7 @@ document.querySelectorAll('.toggle-branch').forEach(function(el) {
                     <i class="fas fa-<?php echo $isCampEdit ? 'edit' : 'plus-circle'; ?> text-primary me-2"></i>
                     <?php echo $isCampEdit ? 'Kampanya Düzenle' : 'Yeni Kampanya Ekle'; ?>
                 </h5>
-                <a href="<?php echo SITE_URL; ?>/admin/dashboard.php?page=kampanyalar" class="btn btn-outline-secondary btn-sm">
+                <a href="<?php echo ADMIN_URL; ?>/dashboard.php?page=kampanyalar" class="btn btn-outline-secondary btn-sm">
                     <i class="fas fa-arrow-left me-1"></i> Geri
                 </a>
             </div>
@@ -4551,7 +4556,7 @@ document.querySelectorAll('.toggle-branch').forEach(function(el) {
 
                 <div class="mt-4 d-flex gap-2">
                     <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> <?php echo $isCampEdit ? 'Güncelle' : 'Kaydet'; ?></button>
-                    <a href="<?php echo SITE_URL; ?>/admin/dashboard.php?page=kampanyalar" class="btn btn-outline-secondary">İptal</a>
+                    <a href="<?php echo ADMIN_URL; ?>/dashboard.php?page=kampanyalar" class="btn btn-outline-secondary">İptal</a>
                 </div>
             </form>
         </div>
@@ -4578,7 +4583,7 @@ document.querySelectorAll('.toggle-branch').forEach(function(el) {
                 'type' => 'Kampanya',
                 'name' => $row['title'],
                 'active' => (bool)$row['is_active'],
-                'link' => SITE_URL . '/admin/dashboard.php?page=kampanya-duzenle&id=' . $row['id'],
+                'link' => ADMIN_URL . '/dashboard.php?page=kampanya-duzenle&id=' . $row['id'],
             ];
         }
     } elseif ($activeFolder === 'partners') {
@@ -4588,7 +4593,7 @@ document.querySelectorAll('.toggle-branch').forEach(function(el) {
                 'type' => 'İş Ortağı',
                 'name' => $row['name'],
                 'active' => (bool)$row['is_active'],
-                'link' => SITE_URL . '/admin/dashboard.php?page=is-ortagi-duzenle&id=' . $row['id'],
+                'link' => ADMIN_URL . '/dashboard.php?page=is-ortagi-duzenle&id=' . $row['id'],
             ];
         }
     } elseif ($activeFolder === 'ruhsat') {
@@ -4600,7 +4605,7 @@ document.querySelectorAll('.toggle-branch').forEach(function(el) {
                     'type' => 'Başvuru #' . $row['id'],
                     'name' => $row['visitor_name'] ?: $row['form_type'],
                     'active' => true,
-                    'link' => SITE_URL . '/admin/dashboard.php?page=basvurular',
+                    'link' => ADMIN_URL . '/dashboard.php?page=basvurular',
                 ];
             }
         }
@@ -4650,7 +4655,7 @@ document.querySelectorAll('.toggle-branch').forEach(function(el) {
         $isActive = ($fKey === $activeFolder);
     ?>
     <div class="col-md-4">
-        <a href="<?php echo SITE_URL; ?>/admin/dashboard.php?page=dosyalar&dir=<?php echo $fKey; ?>" class="text-decoration-none">
+        <a href="<?php echo ADMIN_URL; ?>/dashboard.php?page=dosyalar&dir=<?php echo $fKey; ?>" class="text-decoration-none">
             <div class="stat-card <?php echo $isActive ? 'stat-primary' : ''; ?>" style="cursor:pointer;<?php echo $isActive ? 'border-color:rgba(79,70,229,0.3);background:rgba(79,70,229,0.03);' : ''; ?>">
                 <div class="d-flex align-items-center gap-3">
                     <div class="stat-icon" style="<?php echo $isActive ? '' : 'background:' . $folderColors[$fKey] . '15;color:' . $folderColors[$fKey]; ?>">

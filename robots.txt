@@ -9,7 +9,7 @@ Sitemap: https://www.emresigorta.net/sitemap.xml
 
 # Crawler erişimini engellenecek dizinler
 Disallow: /includes/
-Disallow: /admin/
+Disallow: /poyrazlogin/
 Disallow: /api/
 Disallow: /logs/
 Disallow: /uploads/ruhsat/

@@ -75,15 +75,24 @@ function validateCSRFToken($token) {
 
 function checkCSRF() {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
         // post_max_size aşıldığında $_POST tamamen boş gelir
         if (empty($_POST) && isset($_SERVER['CONTENT_LENGTH']) && (int)$_SERVER['CONTENT_LENGTH'] > 0) {
             $maxSize = ini_get('post_max_size');
             http_response_code(413);
+            if ($isAjax) {
+                header('Content-Type: application/json; charset=utf-8');
+                die(json_encode(['success' => false, 'message' => 'Dosya çok büyük. Maks: ' . $maxSize]));
+            }
             die('Yüklenen dosya çok büyük. Maksimum izin verilen boyut: ' . $maxSize . '. Lütfen daha küçük bir dosya seçin.');
         }
         $token = $_POST[CSRF_TOKEN_NAME] ?? '';
         if (!validateCSRFToken($token)) {
             http_response_code(403);
+            if ($isAjax) {
+                header('Content-Type: application/json; charset=utf-8');
+                die(json_encode(['success' => false, 'message' => 'Güvenlik doğrulaması başarısız. Sayfayı yenileyip tekrar deneyin.']));
+            }
             die('Güvenlik doğrulaması başarısız. Lütfen sayfayı yenileyip tekrar deneyin.');
         }
     }

@@ -3,9 +3,9 @@
  * Emre Sigorta - Veritabanı Bağlantısı
  */
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'webhasan');
-define('DB_USER', 'root');
-define('DB_PASS', '');
+define('DB_NAME', 'emresigo_webhasan');
+define('DB_USER', 'emresigo_ipoyraz');
+define('DB_PASS', 'Poyraz2024+-*/');
 define('DB_CHARSET', 'utf8mb4');
 
 function getDB() {
@@ -26,6 +26,8 @@ function getDB() {
     }
     return $pdo;
 }
+
+
 
 // Site ayarını veritabanından çek
 
@@ -397,7 +399,11 @@ function updateUser($id, $data) {
 function deleteUser($id) {
     $db = getDB();
     $stmt = $db->prepare("DELETE FROM admins WHERE id = ? AND id != 1");
-    return $stmt->execute([$id]);
+    $stmt->execute([$id]);
+    if ($stmt->rowCount() === 0) {
+        throw new Exception('Kullanıcı bulunamadı veya silinemez.');
+    }
+    return true;
 }
 
 // ==================== Form Başvuruları ====================

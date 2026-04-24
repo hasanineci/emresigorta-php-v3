@@ -34,7 +34,7 @@
     <div class="sidebar-nav-wrap">
         <div class="sidebar-section">
             <p class="sidebar-section-title">Ana Menü</p>
-            <a href="<?php echo SITE_URL; ?>/admin/dashboard.php" class="sidebar-link <?php echo basename($_SERVER['PHP_SELF']) === 'dashboard.php' && empty($_GET['page']) ? 'active' : ''; ?>">
+            <a href="<?php echo ADMIN_URL; ?>/dashboard.php" class="sidebar-link <?php echo basename($_SERVER['PHP_SELF']) === 'dashboard.php' && empty($_GET['page']) ? 'active' : ''; ?>">
                 <i class="fas fa-th-large"></i> Dashboard
             </a>
         </div>
@@ -42,28 +42,28 @@
         <div class="sidebar-section">
             <p class="sidebar-section-title">Yönetim</p>
             <?php if (hasRole('personel')): ?>
-            <a href="<?php echo SITE_URL; ?>/admin/dashboard.php?page=sayfalar" class="sidebar-link <?php echo in_array(sanitizeInput($_GET['page'] ?? ''), ['sayfalar', 'sayfa-ekle', 'sayfa-duzenle']) ? 'active' : ''; ?>">
+            <a href="<?php echo ADMIN_URL; ?>/dashboard.php?page=sayfalar" class="sidebar-link <?php echo in_array(sanitizeInput($_GET['page'] ?? ''), ['sayfalar', 'sayfa-ekle', 'sayfa-duzenle']) ? 'active' : ''; ?>">
                 <i class="fas fa-file-alt"></i> Sayfalar
             </a>
-            <a href="<?php echo SITE_URL; ?>/admin/dashboard.php?page=is-ortaklari" class="sidebar-link <?php echo in_array(sanitizeInput($_GET['page'] ?? ''), ['is-ortaklari', 'is-ortagi-ekle', 'is-ortagi-duzenle']) ? 'active' : ''; ?>">
+            <a href="<?php echo ADMIN_URL; ?>/dashboard.php?page=is-ortaklari" class="sidebar-link <?php echo in_array(sanitizeInput($_GET['page'] ?? ''), ['is-ortaklari', 'is-ortagi-ekle', 'is-ortagi-duzenle']) ? 'active' : ''; ?>">
                 <i class="fas fa-handshake"></i> İş Ortakları
             </a>
-            <a href="<?php echo SITE_URL; ?>/admin/dashboard.php?page=yorumlar" class="sidebar-link <?php echo in_array(sanitizeInput($_GET['page'] ?? ''), ['yorumlar', 'yorum-ekle', 'yorum-duzenle']) ? 'active' : ''; ?>">
+            <a href="<?php echo ADMIN_URL; ?>/dashboard.php?page=yorumlar" class="sidebar-link <?php echo in_array(sanitizeInput($_GET['page'] ?? ''), ['yorumlar', 'yorum-ekle', 'yorum-duzenle']) ? 'active' : ''; ?>">
                 <i class="fas fa-star"></i> Müşteri Yorumları
             </a>
-            <a href="<?php echo SITE_URL; ?>/admin/dashboard.php?page=sss" class="sidebar-link <?php echo in_array(sanitizeInput($_GET['page'] ?? ''), ['sss', 'sss-ekle', 'sss-duzenle', 'sss-kategoriler', 'sss-kategori-ekle', 'sss-kategori-duzenle']) ? 'active' : ''; ?>">
+            <a href="<?php echo ADMIN_URL; ?>/dashboard.php?page=sss" class="sidebar-link <?php echo in_array(sanitizeInput($_GET['page'] ?? ''), ['sss', 'sss-ekle', 'sss-duzenle', 'sss-kategoriler', 'sss-kategori-ekle', 'sss-kategori-duzenle']) ? 'active' : ''; ?>">
                 <i class="fas fa-question-circle"></i> SSS Yönetimi
             </a>
-            <a href="<?php echo SITE_URL; ?>/admin/dashboard.php?page=blog" class="sidebar-link <?php echo in_array(sanitizeInput($_GET['page'] ?? ''), ['blog', 'blog-ekle', 'blog-duzenle', 'blog-kategoriler', 'blog-kategori-ekle', 'blog-kategori-duzenle']) ? 'active' : ''; ?>">
+            <a href="<?php echo ADMIN_URL; ?>/dashboard.php?page=blog" class="sidebar-link <?php echo in_array(sanitizeInput($_GET['page'] ?? ''), ['blog', 'blog-ekle', 'blog-duzenle', 'blog-kategoriler', 'blog-kategori-ekle', 'blog-kategori-duzenle']) ? 'active' : ''; ?>">
                 <i class="fas fa-blog"></i> Blog Yönetimi
             </a>
-            <a href="<?php echo SITE_URL; ?>/admin/dashboard.php?page=haberler" class="sidebar-link <?php echo in_array(sanitizeInput($_GET['page'] ?? ''), ['haberler']) ? 'active' : ''; ?>">
+            <a href="<?php echo ADMIN_URL; ?>/dashboard.php?page=haberler" class="sidebar-link <?php echo in_array(sanitizeInput($_GET['page'] ?? ''), ['haberler']) ? 'active' : ''; ?>">
                 <i class="fas fa-rss"></i> Sektör Haberleri
             </a>
-            <a href="<?php echo SITE_URL; ?>/admin/dashboard.php?page=kampanyalar" class="sidebar-link <?php echo in_array(sanitizeInput($_GET['page'] ?? ''), ['kampanyalar', 'kampanya-ekle', 'kampanya-duzenle']) ? 'active' : ''; ?>">
+            <a href="<?php echo ADMIN_URL; ?>/dashboard.php?page=kampanyalar" class="sidebar-link <?php echo in_array(sanitizeInput($_GET['page'] ?? ''), ['kampanyalar', 'kampanya-ekle', 'kampanya-duzenle']) ? 'active' : ''; ?>">
                 <i class="fas fa-bullhorn"></i> Kampanyalar
             </a>
-            <a href="<?php echo SITE_URL; ?>/admin/dashboard.php?page=dosyalar" class="sidebar-link <?php echo ($_GET['page'] ?? '') === 'dosyalar' ? 'active' : ''; ?>">
+            <a href="<?php echo ADMIN_URL; ?>/dashboard.php?page=dosyalar" class="sidebar-link <?php echo ($_GET['page'] ?? '') === 'dosyalar' ? 'active' : ''; ?>">
                 <i class="fas fa-folder-open"></i> Dosya Yönetimi
             </a>
             <?php endif; ?>
@@ -71,25 +71,25 @@
         
         <div class="sidebar-section">
             <p class="sidebar-section-title">İletişim</p>
-            <a href="<?php echo SITE_URL; ?>/admin/dashboard.php?page=iletisim-ayarlari" class="sidebar-link <?php echo ($_GET['page'] ?? '') === 'iletisim-ayarlari' ? 'active' : ''; ?>">
+            <a href="<?php echo ADMIN_URL; ?>/dashboard.php?page=iletisim-ayarlari" class="sidebar-link <?php echo ($_GET['page'] ?? '') === 'iletisim-ayarlari' ? 'active' : ''; ?>">
                 <i class="fas fa-address-card"></i> İletişim Bilgileri
             </a>
-            <a href="<?php echo SITE_URL; ?>/admin/dashboard.php?page=mesajlar" class="sidebar-link <?php echo ($_GET['page'] ?? '') === 'mesajlar' ? 'active' : ''; ?>">
+            <a href="<?php echo ADMIN_URL; ?>/dashboard.php?page=mesajlar" class="sidebar-link <?php echo ($_GET['page'] ?? '') === 'mesajlar' ? 'active' : ''; ?>">
                 <i class="fas fa-envelope"></i> Mesajlar
                 <?php $newMsgCount = getFormSubmissionCount(['form_type' => 'iletisim', 'status' => 'yeni']); if ($newMsgCount > 0): ?>
                 <span class="badge bg-danger"><?php echo $newMsgCount; ?></span>
                 <?php endif; ?>
             </a>
-            <a href="<?php echo SITE_URL; ?>/admin/dashboard.php?page=basvurular" class="sidebar-link <?php echo ($_GET['page'] ?? '') === 'basvurular' ? 'active' : ''; ?>">
+            <a href="<?php echo ADMIN_URL; ?>/dashboard.php?page=basvurular" class="sidebar-link <?php echo ($_GET['page'] ?? '') === 'basvurular' ? 'active' : ''; ?>">
                 <i class="fas fa-clipboard-list"></i> Başvurular
                 <?php $newSubCount = getFormSubmissionCount(['status' => 'yeni']) - $newMsgCount; if ($newSubCount > 0): ?>
                 <span class="badge bg-danger"><?php echo $newSubCount; ?></span>
                 <?php endif; ?>
             </a>
-            <a href="<?php echo SITE_URL; ?>/admin/dashboard.php?page=subeler" class="sidebar-link <?php echo in_array(($_GET['page'] ?? ''), ['subeler', 'sube-ekle', 'sube-duzenle']) ? 'active' : ''; ?>">
+            <a href="<?php echo ADMIN_URL; ?>/dashboard.php?page=subeler" class="sidebar-link <?php echo in_array(($_GET['page'] ?? ''), ['subeler', 'sube-ekle', 'sube-duzenle']) ? 'active' : ''; ?>">
                 <i class="fas fa-store"></i> Şubeler
             </a>
-            <a href="<?php echo SITE_URL; ?>/admin/dashboard.php?page=sosyal-medya" class="sidebar-link <?php echo in_array(sanitizeInput($_GET['page'] ?? ''), ['sosyal-medya', 'sosyal-medya-ekle', 'sosyal-medya-duzenle']) ? 'active' : ''; ?>">
+            <a href="<?php echo ADMIN_URL; ?>/dashboard.php?page=sosyal-medya" class="sidebar-link <?php echo in_array(sanitizeInput($_GET['page'] ?? ''), ['sosyal-medya', 'sosyal-medya-ekle', 'sosyal-medya-duzenle']) ? 'active' : ''; ?>">
                 <i class="fas fa-share-alt"></i> Sosyal Medya
             </a>
         </div>
@@ -97,18 +97,18 @@
         <div class="sidebar-section">
             <p class="sidebar-section-title">Sistem</p>
             <?php if (hasRole('yonetici')): ?>
-            <a href="<?php echo SITE_URL; ?>/admin/dashboard.php?page=kullanicilar" class="sidebar-link <?php echo in_array(($_GET['page'] ?? ''), ['kullanicilar', 'kullanici-ekle', 'kullanici-duzenle']) ? 'active' : ''; ?>">
+            <a href="<?php echo ADMIN_URL; ?>/dashboard.php?page=kullanicilar" class="sidebar-link <?php echo in_array(($_GET['page'] ?? ''), ['kullanicilar', 'kullanici-ekle', 'kullanici-duzenle']) ? 'active' : ''; ?>">
                 <i class="fas fa-users-cog"></i> Kullanıcılar
             </a>
             <?php endif; ?>
-            <a href="<?php echo SITE_URL; ?>/admin/dashboard.php?page=guvenlik" class="sidebar-link <?php echo ($_GET['page'] ?? '') === 'guvenlik' ? 'active' : ''; ?>">
+            <a href="<?php echo ADMIN_URL; ?>/dashboard.php?page=guvenlik" class="sidebar-link <?php echo ($_GET['page'] ?? '') === 'guvenlik' ? 'active' : ''; ?>">
                 <i class="fas fa-shield-alt"></i> Güvenlik Logları
             </a>
-            <a href="<?php echo SITE_URL; ?>/admin/dashboard.php?page=islem-gecmisi" class="sidebar-link <?php echo ($_GET['page'] ?? '') === 'islem-gecmisi' ? 'active' : ''; ?>">
+            <a href="<?php echo ADMIN_URL; ?>/dashboard.php?page=islem-gecmisi" class="sidebar-link <?php echo ($_GET['page'] ?? '') === 'islem-gecmisi' ? 'active' : ''; ?>">
                 <i class="fas fa-history"></i> İşlem Geçmişi
             </a>
             <?php if (hasRole('yonetici')): ?>
-            <a href="<?php echo SITE_URL; ?>/admin/dashboard.php?page=ayarlar" class="sidebar-link <?php echo ($_GET['page'] ?? '') === 'ayarlar' ? 'active' : ''; ?>">
+            <a href="<?php echo ADMIN_URL; ?>/dashboard.php?page=ayarlar" class="sidebar-link <?php echo ($_GET['page'] ?? '') === 'ayarlar' ? 'active' : ''; ?>">
                 <i class="fas fa-cog"></i> Ayarlar
             </a>
             <?php endif; ?>
@@ -119,7 +119,7 @@
         <a href="<?php echo SITE_URL; ?>/" class="sidebar-link" target="_blank">
             <i class="fas fa-external-link-alt"></i> Siteyi Görüntüle
         </a>
-        <a href="<?php echo SITE_URL; ?>/admin/logout.php" class="sidebar-link text-danger">
+        <a href="<?php echo ADMIN_URL; ?>/logout.php" class="sidebar-link text-danger">
             <i class="fas fa-sign-out-alt"></i> Çıkış Yap
         </a>
     </div>
@@ -152,7 +152,7 @@
                     <div class="topbar-user-role"><?php echo $rb[0]; ?></div>
                 </div>
             </div>
-            <a href="<?php echo SITE_URL; ?>/admin/logout.php" class="topbar-btn" title="Çıkış Yap" style="color: #ef4444;">
+            <a href="<?php echo ADMIN_URL; ?>/logout.php" class="topbar-btn" title="Çıkış Yap" style="color: #ef4444;">
                 <i class="fas fa-sign-out-alt"></i>
             </a>
         </div>

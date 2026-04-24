@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Emre Sigorta - Admin Kimlik Doğrulama (Veritabanı Destekli)
  */
@@ -13,12 +13,12 @@ function isAdminLoggedIn() {
 
 function requireAdminLogin() {
     if (!isAdminLoggedIn()) {
-        header('Location: ' . SITE_URL . '/admin/index.php');
+        header('Location: ' . ADMIN_URL . '/index.php');
         exit;
     }
     if (isset($_SESSION['admin_last_activity']) && (time() - $_SESSION['admin_last_activity'] > 1800)) {
         adminLogout();
-        header('Location: ' . SITE_URL . '/admin/index.php?timeout=1');
+        header('Location: ' . ADMIN_URL . '/index.php?timeout=1');
         exit;
     }
     $_SESSION['admin_last_activity'] = time();
@@ -34,7 +34,7 @@ function hasRole($requiredRole) {
 function requireRole($requiredRole) {
     if (!hasRole($requiredRole)) {
         http_response_code(403);
-        echo '<div style="text-align:center;padding:60px;font-family:Inter,sans-serif"><h1>403</h1><p>Bu sayfaya erişim yetkiniz yok.</p><a href="' . SITE_URL . '/admin/dashboard.php">Dashboard\'a Dön</a></div>';
+        echo '<div style="text-align:center;padding:60px;font-family:Inter,sans-serif"><h1>403</h1><p>Bu sayfaya erişim yetkiniz yok.</p><a href="' . ADMIN_URL . '/dashboard.php">Dashboard\'a Dön</a></div>';
         exit;
     }
 }

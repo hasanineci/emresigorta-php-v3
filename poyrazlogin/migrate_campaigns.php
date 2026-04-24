@@ -1,5 +1,5 @@
 ﻿<?php
-require_once 'c:/xampp/htdocs/yenitasarim/includes/db.php';
+require_once __DIR__ . '/../includes/db.php';
 try {
     $db = getDB();
     $db->exec("CREATE TABLE IF NOT EXISTS campaigns (

@@ -84,7 +84,7 @@ echo "Admin user created.\n";
 // Site ayarlarını ekle
 $settings = [
     ['site_name', 'Emre Sigorta', 'Site Adı', 'genel'],
-    ['site_url', 'http://localhost/yenitasarim', 'Site URL', 'genel'],
+    ['site_url', 'https://www.emresigorta.net', 'Site URL', 'genel'],
     ['site_domain', 'www.emresigorta.net', 'Domain', 'genel'],
     ['site_email', 'info@emresigorta.net', 'E-posta', 'iletisim'],
     ['site_email_alt', 'hasanineci@gmail.com', 'Alternatif E-posta', 'iletisim'],
@@ -106,6 +106,8 @@ $settings = [
     ['working_hours', 'Hafta İçi 09:00 - 18:00 | Cumartesi 10:00 - 14:00 | Pazar Kapalı', 'Çalışma Saatleri', 'iletisim'],
     ['social_youtube', '', 'YouTube', 'sosyal'],
     ['social_tiktok', '', 'TikTok', 'sosyal'],
+    ['turnstile_site_key', '', 'Cloudflare Turnstile Site Key', 'guvenlik'],
+    ['turnstile_secret_key', '', 'Cloudflare Turnstile Secret Key', 'guvenlik'],
 ];
 
 $stmt = $pdo->prepare("INSERT IGNORE INTO site_settings (setting_key, setting_value, setting_label, setting_group) VALUES (?, ?, ?, ?)");

@@ -1,15 +1,30 @@
-<?php
+﻿<?php
 /**
  * Emre Sigorta - Admin Giriş Sayfası (Split-Screen)
  */
 require_once __DIR__ . '/includes/auth.php';
 
 if (isAdminLoggedIn()) {
-    header('Location: ' . SITE_URL . '/admin/dashboard.php');
+    header('Location: ' . ADMIN_URL . '/dashboard.php');
     exit;
 }
 
 $error = '';
+
+// CAPTCHA oluşturma fonksiyonu
+function generateCaptcha() {
+    $ops = ['+', '-', '×'];
+    $op = $ops[array_rand($ops)];
+    if ($op === '+') {
+        $a = rand(2, 15); $b = rand(1, 10); $ans = $a + $b;
+    } elseif ($op === '-') {
+        $a = rand(6, 20); $b = rand(1, $a - 1); $ans = $a - $b;
+    } else {
+        $a = rand(2, 9); $b = rand(2, 9); $ans = $a * $b;
+    }
+    $_SESSION['_captcha_answer'] = $ans;
+    return $a . ' ' . $op . ' ' . $b . ' = ?';
+}
 
 if (isset($_GET['timeout'])) {
     $error = 'Oturumunuz zaman aşımına uğradı. Lütfen tekrar giriş yapın.';
@@ -20,18 +35,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
     
-    if (empty($username) || empty($password)) {
+    // CAPTCHA doğrulama (session'daki eski cevapla karşılaştır)
+    $captchaInput = trim($_POST['captcha_answer'] ?? '');
+    $captchaExpected = $_SESSION['_captcha_answer'] ?? null;
+    $captchaValid = ($captchaExpected !== null && (int)$captchaInput === (int)$captchaExpected);
+    
+    // Cloudflare Turnstile doğrulama (ek güvenlik, anahtarlar varsa)
+    $turnstileValid = true;
+    if (TURNSTILE_SECRET_KEY) {
+        $turnstileValid = false;
+        $turnstileToken = $_POST['cf-turnstile-response'] ?? '';
+        if ($turnstileToken) {
+            $verifyData = [
+                'secret' => TURNSTILE_SECRET_KEY,
+                'response' => $turnstileToken,
+                'remoteip' => $_SERVER['REMOTE_ADDR'] ?? ''
+            ];
+            $ch = curl_init('https://challenges.cloudflare.com/turnstile/v0/siteverify');
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($verifyData));
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+            $verifyResponse = curl_exec($ch);
+            curl_close($ch);
+            if ($verifyResponse) {
+                $verifyResult = json_decode($verifyResponse, true);
+                $turnstileValid = !empty($verifyResult['success']);
+            }
+        }
+    }
+    
+    if (!$captchaValid) {
+        $error = 'Güvenlik sorusu yanlış. Lütfen tekrar deneyin.';
+    } elseif (!$turnstileValid) {
+        $error = 'Güvenlik doğrulaması başarısız. Lütfen tekrar deneyin.';
+    } elseif (empty($username) || empty($password)) {
         $error = 'Kullanıcı adı ve şifre gereklidir.';
     } else {
         $result = adminLogin($username, $password);
         if ($result['success']) {
-            header('Location: ' . SITE_URL . '/admin/dashboard.php');
+            header('Location: ' . ADMIN_URL . '/dashboard.php');
             exit;
         } else {
             $error = $result['message'];
         }
     }
 }
+
+// POST işlemi bitti, yeni CAPTCHA oluştur (sonraki gösterim için)
+$captchaQuestion = generateCaptcha();
 
 $sliders = getLoginSliders();
 ?>
@@ -46,6 +98,9 @@ $sliders = getLoginSliders();
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <?php if (TURNSTILE_SITE_KEY): ?>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <?php endif; ?>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -137,6 +192,20 @@ $sliders = getLoginSliders();
             border-color: #4f46e5; box-shadow: 0 0 0 4px rgba(79,70,229,0.1); background: #fff;
         }
         .input-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 15px; }
+        .captcha-box {
+            display: flex; align-items: center; gap: 12px;
+            background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+            border: 1.5px solid #c7d2fe; border-radius: 12px; padding: 12px 16px;
+        }
+        .captcha-question {
+            font-size: 18px; font-weight: 700; color: #4338ca; white-space: nowrap;
+            letter-spacing: 2px; font-family: 'Courier New', monospace;
+            user-select: none; -webkit-user-select: none;
+        }
+        .captcha-input {
+            max-width: 100px; text-align: center; font-weight: 600; font-size: 16px !important;
+            border-radius: 8px !important; padding: 8px 12px !important;
+        }
         .btn-login {
             width: 100%; padding: 13px; border-radius: 12px; font-size: 15px; font-weight: 600;
             background: linear-gradient(135deg, #4f46e5, #6366f1);
@@ -305,12 +374,26 @@ $sliders = getLoginSliders();
                         </div>
                     </div>
                     
-                    <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" id="remember" name="remember">
                             <label class="form-check-label" for="remember" style="font-size: 13px; color: #667085;">Beni Hatırla</label>
                         </div>
                     </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label"><i class="fas fa-shield-alt me-1" style="color: #4f46e5;"></i>Güvenlik Doğrulaması</label>
+                        <div class="captcha-box">
+                            <span class="captcha-question"><?php echo $captchaQuestion; ?></span>
+                            <input type="number" name="captcha_answer" class="form-control captcha-input" placeholder="Cevap" required autocomplete="off">
+                        </div>
+                    </div>
+                    
+                    <?php if (TURNSTILE_SITE_KEY): ?>
+                    <div class="mb-3">
+                        <div class="cf-turnstile" data-sitekey="<?php echo htmlspecialchars(TURNSTILE_SITE_KEY, ENT_QUOTES, 'UTF-8'); ?>" data-theme="light"></div>
+                    </div>
+                    <?php endif; ?>
                     
                     <button type="submit" class="btn btn-login">
                         Giriş Yap <i class="fas fa-arrow-right ms-2"></i>

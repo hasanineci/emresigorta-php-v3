@@ -1,28 +1,18 @@
 
-# === GENEL DİZİN VE DOSYA KORUMALARI ===
-# Dizin listelemeyi kapat, CGI çalıştırmayı engelle, symbolic link desteği
-Options -Indexes -ExecCGI +FollowSymLinks
-
-# .htaccess dosyalarına erişimi engelle
-<Files ".htaccess">
-    Require all denied
-</Files>
-
-# includes, logs, admin/includes altındaki hassas dosya tiplerine erişimi engelle
-<FilesMatch "\.(php|log|sql|bak|config|ini|sh|env)$">
-    <If "%{REQUEST_URI} =~ m#^/(includes|logs|admin/includes)/#">
-        Require all denied
-    </If>
-</FilesMatch>
-
-# === HATA YÖNLENDİRMELERİ ===
-# Tüm 404 ve 403 hatalarında özel 404.php göster
-ErrorDocument 404 /404.php
-ErrorDocument 403 /404.php
 
 # === APACHE REWRITE GÜVENLİK KURALLARI ===
 <IfModule mod_rewrite.c>
     RewriteEngine On
+    RewriteBase /
+
+    # Localhost'ta domain yönlendirmesi yapma
+    RewriteCond %{HTTP_HOST} ^localhost$ [NC,OR]
+    RewriteCond %{HTTP_HOST} ^127\.0\.0\.1$ [NC]
+    RewriteRule ^ - [L]
+
+    # Tüm gelen istekleri www.emresigorta.net adresine yönlendir
+    RewriteCond %{HTTP_HOST} !^www\.emresigorta\.net$ [NC]
+    RewriteRule ^(.*)$ https://www.emresigorta.net/$1 [R=301,L]
 
     # logs dizinine erişimi tamamen engelle
     RewriteRule ^logs/ - [F,L]
@@ -30,8 +20,8 @@ ErrorDocument 403 /404.php
     # includes dizinine doğrudan erişimi engelle
     RewriteRule ^includes/ - [F,L]
 
-    # admin/includes dizinine doğrudan erişimi engelle
-    RewriteRule ^admin/includes/ - [F,L]
+    # poyrazlogin/includes dizinine doğrudan erişimi engelle
+    RewriteRule ^poyrazlogin/includes/ - [F,L]
 
     # API dizinine dışarıdan erişimi engelle (sadece kendi sitemizden AJAX)
     RewriteCond %{HTTP_REFERER} !^https?://(localhost|www\.emresigorta\.net) [NC]
@@ -63,15 +53,36 @@ ErrorDocument 403 /404.php
     RewriteRule .* - [F,L]
 
     # HTTP_HOST manipülasyonunu engelle (sadece kendi domainlerinden erişim)
-    RewriteCond %{HTTP_HOST} !^(localhost|www\.emresigorta\.net)$ [NC]
+    RewriteCond %{HTTP_HOST} !^(localhost|emresigorta\.net|www\.emresigorta\.net)$ [NC]
     RewriteRule .* - [F,L]
 
-    # Var olmayan dosya veya dizinler için özel 404.php göster
+    # Var olmayan dosya veya dizinler için özel 404.php göster (sadece sayfa isteklerinde)
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} \.(php|html|htm)$ [NC]
     RewriteRule ^(.*)$ /404.php [L]
 </IfModule>
 
+# === GENEL DİZİN VE DOSYA KORUMALARI ===
+# Dizin listelemeyi kapat, CGI çalıştırmayı engelle, symbolic link desteği
+Options -Indexes -ExecCGI +FollowSymLinks
+
+# .htaccess dosyalarına erişimi engelle
+<Files ".htaccess">
+    Require all denied
+</Files>
+
+# includes, logs, poyrazlogin/includes altındaki hassas dosya tiplerine erişimi engelle
+<FilesMatch "\.(php|log|sql|bak|config|ini|sh|env)$">
+    <If "%{REQUEST_URI} =~ m#^/(includes|logs|poyrazlogin/includes)/#">
+        Require all denied
+    </If>
+</FilesMatch>
+
+# === HATA YÖNLENDİRMELERİ ===
+# Tüm 404 ve 403 hatalarında özel 404.php göster
+ErrorDocument 404 /404.php
+ErrorDocument 403 /404.php
 # Güvenlik Başlıkları
 <IfModule mod_headers.c>
     # XSS Koruması
@@ -120,9 +131,9 @@ ErrorDocument 403 /404.php
 </FilesMatch>
 
 # Hata sayfaları
-ErrorDocument 403 /yenitasarim/index.php
-ErrorDocument 404 /yenitasarim/index.php
-ErrorDocument 500 /yenitasarim/index.php
+ErrorDocument 403 /index.php
+ErrorDocument 404 /index.php
+ErrorDocument 500 /index.php
 
 # ETag'i kaldır (bilgi sızıntısını önle)
 <IfModule mod_headers.c>
