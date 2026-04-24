@@ -18,7 +18,7 @@ function _s($key, $default = '') {
 define('SITE_NAME', _s('site_name', 'Emre Sigorta'));
 // SITE_URL ve SITE_DOMAIN: sunucu ortamından otomatik tespit
 $_autoHost = $_SERVER['HTTP_HOST'] ?? 'www.emresigorta.net';
-$_autoScheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$_autoScheme = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')) ? 'https' : 'http';
 // Proje kök dizini ile document root arasındaki farkı bul (alt dizin tespiti)
 $_projectRoot = str_replace('\\', '/', realpath(__DIR__ . '/..'));
 $_docRoot = str_replace('\\', '/', realpath($_SERVER['DOCUMENT_ROOT'] ?? ''));

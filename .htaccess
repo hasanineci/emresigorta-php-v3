@@ -10,6 +10,11 @@
     RewriteCond %{HTTP_HOST} ^127\.0\.0\.1$ [NC]
     RewriteRule ^ - [L]
 
+    # HTTPS'e yönlendir (cPanel/Cloudflare proxy uyumlu - sonsuz döngüyü önler)
+    RewriteCond %{HTTPS} off
+    RewriteCond %{HTTP:X-Forwarded-Proto} !https [NC]
+    RewriteRule ^ https://www.emresigorta.net%{REQUEST_URI} [R=301,L]
+
     # Tüm gelen istekleri www.emresigorta.net adresine yönlendir
     RewriteCond %{HTTP_HOST} !^www\.emresigorta\.net$ [NC]
     RewriteRule ^(.*)$ https://www.emresigorta.net/$1 [R=301,L]

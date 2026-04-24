@@ -45,7 +45,7 @@ foreach ($branches as $b) {
 
         <!-- İletişim Kartları -->
         <!-- İletişim Kartları -->
-        <div class="contact-cards" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-bottom: 50px; align-items: stretch;">
+        <div class="contact-cards" style="margin-bottom: 50px;">
             <?php if (SITE_PHONE): ?>
             <div class="ccard ccard-blue">
                 <div class="ccard-body">
@@ -288,18 +288,22 @@ foreach ($branches as $b) {
 
 <style>
 /* Contact Info Cards */
+.contact-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    align-items: stretch;
+}
 .ccard {
     border-radius: 10px;
     overflow: hidden;
     box-shadow: 0 4px 20px rgba(0,0,0,0.1);
     transition: transform 0.25s, box-shadow 0.25s;
-    margin: 0 10px;
+    margin: 0;
     background: #f1f3f5;
     display: flex;
     flex-direction: column;
 }
-.ccard:first-child { margin-left: 0; }
-.ccard:last-child { margin-right: 0; }
 .ccard:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 30px rgba(0,0,0,0.15);
@@ -341,6 +345,8 @@ foreach ($branches as $b) {
     text-decoration: none;
     display: block;
     line-height: 1.3;
+    word-break: break-all;
+    overflow-wrap: break-word;
 }
 .ccard-value:hover { opacity: 0.9; }
 .ccard-sub {
@@ -387,10 +393,15 @@ foreach ($branches as $b) {
     .contact-form-map-row {
         grid-template-columns: 1fr !important;
     }
+    .contact-cards {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 14px !important;
+    }
 }
 @media (max-width: 768px) {
     .contact-cards {
         grid-template-columns: 1fr !important;
+        gap: 14px !important;
     }
     .branch-row {
         grid-template-columns: 1fr !important;

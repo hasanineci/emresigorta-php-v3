@@ -3,6 +3,10 @@ require_once __DIR__ . '/security.php';
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/db.php';
 
+// Genel sayfalar için cache başlığını geçersiz kıl (SEO için - security.php'nin no-store'unu ezer)
+header('Cache-Control: public, max-age=3600, s-maxage=86400');
+header_remove('Pragma');
+
 // Sayfa aktiflik kontrolü (admin panelinden pasif edilen sayfalar engellensin)
 $_currentSlug = basename($_SERVER['PHP_SELF']);
 if ($_currentSlug !== 'index.php' && $_currentSlug !== '404.php' && !isPageActive($_currentSlug)) {
