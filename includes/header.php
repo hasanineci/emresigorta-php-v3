@@ -138,6 +138,11 @@ if ($_currentSlug !== 'index.php' && $_currentSlug !== '404.php' && !isPageActiv
     <link rel="icon" type="image/png" href="<?php echo SITE_FAVICON; ?>">
     <link rel="apple-touch-icon" href="<?php echo SITE_FAVICON; ?>">
     
+    <!-- LCP: Hero resmi preload (sadece ana sayfa) -->
+    <?php if (basename($_SERVER['PHP_SELF']) === 'index.php'): ?>
+    <link rel="preload" as="image" href="/assets/images/hero-bg.webp" type="image/webp" fetchpriority="high">
+    <?php endif; ?>
+
     <!-- DNS Prefetch & Preconnect -->
     <link rel="dns-prefetch" href="//fonts.googleapis.com">
     <link rel="dns-prefetch" href="//fonts.gstatic.com">
@@ -145,22 +150,29 @@ if ($_currentSlug !== 'index.php' && $_currentSlug !== '404.php' && !isPageActiv
     <link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-    
-    <!-- Bootstrap 5 CSS -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+
+    <!-- Google Fonts - display=swap: render-blocking olmadan harf geçişi sağlar -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
+
+    <!-- Bootstrap 5 CSS - kritik, senkron yükle; preload ile erken indir -->
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" as="style">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    
-    <!-- AOS - Animate On Scroll -->
-    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-    
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="/assets/css/variables.css">
-    <link rel="stylesheet" href="/assets/css/style.css">
+
+    <!-- Critical CSS: variables.css + style.css tamamen inline = sıfır render-blocking, sıfır CLS -->
+    <style><?php
+    echo file_get_contents(dirname(__DIR__) . '/assets/css/variables.css');
+    echo file_get_contents(dirname(__DIR__) . '/assets/css/style.css');
+    ?></style>
+
+    <!-- Font Awesome - non-blocking (ikonlar LCP'yi etkilemez) -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"></noscript>
+
+    <!-- AOS - non-blocking (animasyon CSS ilk render'ı bloklamamalı) -->
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css"></noscript>
     
     <!-- CSRF Token & Site URL (JS için) -->
     <meta name="csrf-token" content="<?php echo htmlspecialchars(generateCSRFToken(), ENT_QUOTES, 'UTF-8'); ?>">
@@ -198,7 +210,10 @@ if ($_currentSlug !== 'index.php' && $_currentSlug !== '404.php' && !isPageActiv
     <div class="container">
         <!-- Logo -->
         <a class="navbar-brand" href="<?php echo SITE_URL; ?>/" title="<?php echo SITE_NAME; ?> - Ana Sayfa">
-            <img src="<?php echo SITE_URL . SITE_LOGO; ?>" alt="<?php echo SITE_NAME; ?> Aracılık Hizmetleri" class="logo-img" height="52">
+            <picture>
+                <source srcset="<?php echo SITE_URL; ?>/assets/images/logo/logo-siyah-opt.webp" type="image/webp">
+                <img src="<?php echo SITE_URL . SITE_LOGO; ?>" alt="<?php echo SITE_NAME; ?> Aracılık Hizmetleri" class="logo-img" width="180" height="48" loading="eager" decoding="async">
+            </picture>
         </a>
         
         <!-- Mobile Toggle -->
@@ -301,7 +316,10 @@ if ($_currentSlug !== 'index.php' && $_currentSlug !== '404.php' && !isPageActiv
 <div class="offcanvas offcanvas-end" tabindex="-1" id="mobileMenu" aria-labelledby="mobileMenuLabel">
     <div class="offcanvas-header border-bottom">
         <a href="<?php echo SITE_URL; ?>/">
-            <img src="<?php echo SITE_URL . SITE_LOGO; ?>" alt="<?php echo SITE_NAME; ?>" height="35">
+            <picture>
+                <source srcset="<?php echo SITE_URL; ?>/assets/images/logo/logo-siyah-opt.webp" type="image/webp">
+                <img src="<?php echo SITE_URL . SITE_LOGO; ?>" alt="<?php echo SITE_NAME; ?>" width="131" height="35" loading="lazy" decoding="async">
+            </picture>
         </a>
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Kapat"></button>
     </div>

@@ -920,15 +920,43 @@ function incrementBlogViews($id) {
 // ==================== Harici Haberler (Sigortamedya RSS) ====================
 
 function fetchAndCacheNews($feedUrl = 'https://sigortamedya.com.tr/feed/') {
-    $ctx = stream_context_create([
-        'http' => [
-            'timeout' => 15,
-            'user_agent' => 'Mozilla/5.0 (compatible; EmreSigorta/1.0)'
-        ],
-        'ssl' => ['verify_peer' => false, 'verify_peer_name' => false]
-    ]);
-    $xml = @file_get_contents($feedUrl, false, $ctx);
-    if (!$xml) throw new Exception('RSS feed alınamadı.');
+    $xml = false;
+
+    // Önce cURL dene (hosting'de daha güvenilir)
+    if (function_exists('curl_init')) {
+        $ch = curl_init($feedUrl);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 20,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_MAXREDIRS      => 3,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => 0,
+            CURLOPT_USERAGENT      => 'Mozilla/5.0 (compatible; EmreSigorta/1.0)',
+            CURLOPT_ENCODING       => '',
+        ]);
+        $xml = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+        if ($xml === false || $httpCode < 200 || $httpCode >= 400) {
+            $xml = false;
+        }
+    }
+
+    // cURL yoksa veya başarısız olduysa file_get_contents dene
+    if (!$xml && ini_get('allow_url_fopen')) {
+        $ctx = stream_context_create([
+            'http' => ['timeout' => 15, 'user_agent' => 'Mozilla/5.0 (compatible; EmreSigorta/1.0)'],
+            'ssl'  => ['verify_peer' => false, 'verify_peer_name' => false]
+        ]);
+        $xml = @file_get_contents($feedUrl, false, $ctx);
+    }
+
+    if (!$xml) {
+        $detail = isset($curlError) && $curlError ? " ($curlError)" : '';
+        throw new Exception('RSS feed alınamadı' . $detail . '. Lütfen hosting\'in dış bağlantıya izin verdiğinden emin olun.');
+    }
 
     libxml_use_internal_errors(true);
     $rss = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_NOCDATA);

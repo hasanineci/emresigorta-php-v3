@@ -5,7 +5,10 @@
             <!-- Logo & About -->
             <div class="col-lg-3 col-md-6" data-aos="fade-up" data-aos-delay="0">
                 <a href="<?php echo SITE_URL; ?>/" class="d-inline-block mb-3">
-                    <img src="<?php echo SITE_URL . SITE_LOGO_WHITE; ?>" alt="<?php echo SITE_NAME; ?>" height="40" class="footer-logo">
+                    <picture>
+                        <source srcset="<?php echo SITE_URL; ?>/assets/images/logo/logo-beyaz-opt.webp" type="image/webp">
+                        <img src="<?php echo SITE_URL . SITE_LOGO_WHITE; ?>" alt="<?php echo SITE_NAME; ?>" width="150" height="40" class="footer-logo" loading="lazy" decoding="async">
+                    </picture>
                 </a>
                 <p class="text-white-50 small mb-3">Şanlıurfa'nın güvenilir sigorta acentesi. <?php echo SITE_FOUNDED; ?> yılından bu yana müşterilerimize en iyi sigorta çözümlerini sunuyoruz.</p>
                 <div class="d-flex gap-2">
@@ -121,13 +124,13 @@
 </noscript>
 
 <!-- Bootstrap 5 JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" defer></script>
 
-<!-- AOS JS -->
-<script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+<!-- AOS JS (jsdelivr - daha hızlı) -->
+<script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js" defer></script>
 
 <!-- Custom JS -->
-<script src="<?php echo SITE_URL; ?>/assets/js/main.js"></script>
+<script src="<?php echo SITE_URL; ?>/assets/js/main.js" defer></script>
 
 <!-- Form Gönderim JS -->
 <script>

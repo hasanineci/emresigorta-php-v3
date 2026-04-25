@@ -7,14 +7,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ==========================================
     // 1. AOS - Animate On Scroll Initialization
+    // defer ile yüklendiğinden AOS hazır olana kadar bekle
     // ==========================================
-    AOS.init({
-        duration: 800,
-        easing: 'ease-out-cubic',
-        once: true,
-        offset: 80,
-        delay: 0
-    });
+    function initAOS() {
+        if (typeof AOS !== 'undefined') {
+            AOS.init({
+                duration: 800,
+                easing: 'ease-out-cubic',
+                once: true,
+                offset: 80,
+                delay: 0
+            });
+        } else {
+            window.addEventListener('load', function () {
+                if (typeof AOS !== 'undefined') {
+                    AOS.init({ duration: 800, easing: 'ease-out-cubic', once: true, offset: 80, delay: 0 });
+                }
+            });
+        }
+    }
+    initAOS();
 
     // ==========================================
     // 2. Navbar Scroll Effect

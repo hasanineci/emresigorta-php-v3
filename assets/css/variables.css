@@ -5,6 +5,15 @@
    ve tasarim degiskenleri bu dosyadan yonetilir.
    ========================================== */
 
+/* Font display: swap — FOIT (görünmez metin) önle */
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400 800;
+    font-display: swap;
+    src: local('Inter');
+}
+
 :root {
     /* -----------------------------------------------
        MARKA RENKLERI (Brand Colors)
@@ -95,9 +104,9 @@
     /* -----------------------------------------------
        GECIS EFEKTLERI (Transitions)
        ----------------------------------------------- */
-    --transition: all .3s cubic-bezier(.4,0,.2,1);
-    --transition-fast: all .15s cubic-bezier(.4,0,.2,1);
-    --transition-slow: all .5s cubic-bezier(.4,0,.2,1);
+    --transition: color .3s cubic-bezier(.4,0,.2,1), background-color .3s cubic-bezier(.4,0,.2,1), border-color .3s cubic-bezier(.4,0,.2,1), box-shadow .3s cubic-bezier(.4,0,.2,1), transform .3s cubic-bezier(.4,0,.2,1), opacity .3s cubic-bezier(.4,0,.2,1);
+    --transition-fast: color .15s cubic-bezier(.4,0,.2,1), background-color .15s cubic-bezier(.4,0,.2,1), border-color .15s cubic-bezier(.4,0,.2,1), box-shadow .15s cubic-bezier(.4,0,.2,1), transform .15s cubic-bezier(.4,0,.2,1), opacity .15s cubic-bezier(.4,0,.2,1);
+    --transition-slow: color .5s cubic-bezier(.4,0,.2,1), background-color .5s cubic-bezier(.4,0,.2,1), border-color .5s cubic-bezier(.4,0,.2,1), box-shadow .5s cubic-bezier(.4,0,.2,1), transform .5s cubic-bezier(.4,0,.2,1), opacity .5s cubic-bezier(.4,0,.2,1);
 
     /* -----------------------------------------------
        YARI SAYDAM KATMANLAR (Overlay/Glass)

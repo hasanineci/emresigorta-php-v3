@@ -24,7 +24,15 @@ require_once 'includes/header.php';
 ?>
 
 <!-- ==================== HERO SECTION ==================== -->
-<section class="hero-section" style="background-image: url('assets/images/hero-bg.jpg');">
+<section class="hero-section">
+    <!-- LCP: WebP direkt img - preload ile tam eşleşme, picture olmadan -->
+    <img src="<?php echo SITE_URL; ?>/assets/images/hero-bg.webp"
+         alt=""
+         class="hero-bg-img"
+         fetchpriority="high"
+         decoding="async"
+         width="1920"
+         height="620">
     <div class="container">
         <div class="row align-items-center min-vh-50">
             <div class="col-lg-7" data-aos="fade-right" data-aos-duration="1000">
@@ -68,7 +76,10 @@ require_once 'includes/header.php';
                 </div>
             </div>
             <div class="col-lg-5 d-none d-lg-block" data-aos="fade-left" data-aos-duration="1000" data-aos-delay="200">
-                <img src="assets/images/hero-side.jpg" alt="Sigorta Danışmanlık" class="img-fluid rounded-4 shadow-lg animate-float" style="border: 4px solid rgba(255,255,255,.1);">
+                <picture>
+                    <source srcset="assets/images/hero-side.webp" type="image/webp">
+                    <img src="assets/images/hero-side.jpg" alt="Sigorta Danışmanlık" class="img-fluid rounded-4 shadow-lg animate-float" width="600" height="344" loading="lazy" decoding="async" style="border: 4px solid rgba(255,255,255,.1);">
+                </picture>
             </div>
         </div>
     </div>
@@ -384,7 +395,10 @@ require_once 'includes/header.php';
                 </span>
                 <h2 class="section-title mb-3">Neden Emre Sigorta'yı <br>Tercih Etmelisiniz?</h2>
                 <p class="text-muted mb-4">Şanlıurfa'nın güvenilir sigorta acentesi olarak, <?php echo SITE_FOUNDED; ?> yılından bu yana sektördeki deneyimimizle müşterilerimize en iyi hizmeti sunuyoruz.</p>
-                <img src="assets/images/team.jpg" alt="Emre Sigorta Ekibi" class="img-fluid rounded-4 shadow-lg img-section" loading="lazy">
+                <picture>
+                    <source srcset="assets/images/team.webp" type="image/webp">
+                    <img src="assets/images/team.jpg" alt="Emre Sigorta Ekibi" class="img-fluid rounded-4 shadow-lg img-section" width="600" height="400" loading="lazy" decoding="async">
+                </picture>
             </div>
             <div class="col-lg-7">
                 <div class="row g-4">
@@ -475,7 +489,10 @@ require_once 'includes/header.php';
         <!-- Trafik Sigortası Detail -->
         <div class="row align-items-center g-5 mb-5">
             <div class="col-lg-6" data-aos="fade-right">
-                <img src="assets/images/trafik.jpg" alt="Trafik Sigortası" class="img-fluid rounded-4 shadow-lg img-section" loading="lazy">
+                <picture>
+                    <source srcset="assets/images/trafik.webp" type="image/webp">
+                    <img src="assets/images/trafik.jpg" alt="Trafik Sigortası" class="img-fluid rounded-4 shadow-lg img-section" width="700" height="467" loading="lazy" decoding="async">
+                </picture>
             </div>
             <div class="col-lg-6" data-aos="fade-left">
                 <span class="badge bg-primary bg-opacity-10 text-primary fs-6 mb-3 px-3 py-2 rounded-pill">
@@ -498,7 +515,10 @@ require_once 'includes/header.php';
         <!-- Kasko Detail -->
         <div class="row align-items-center g-5 mb-5 flex-lg-row-reverse">
             <div class="col-lg-6" data-aos="fade-left">
-                <img src="assets/images/kasko.jpg" alt="Kasko Sigortası" class="img-fluid rounded-4 shadow-lg img-section" loading="lazy">
+                <picture>
+                    <source srcset="assets/images/kasko.webp" type="image/webp">
+                    <img src="assets/images/kasko.jpg" alt="Kasko Sigortası" class="img-fluid rounded-4 shadow-lg img-section" width="700" height="467" loading="lazy" decoding="async">
+                </picture>
             </div>
             <div class="col-lg-6" data-aos="fade-right">
                 <span class="badge bg-success bg-opacity-10 text-success fs-6 mb-3 px-3 py-2 rounded-pill">
@@ -521,7 +541,10 @@ require_once 'includes/header.php';
         <!-- Sağlık Sigortası Detail -->
         <div class="row align-items-center g-5">
             <div class="col-lg-6" data-aos="fade-right">
-                <img src="assets/images/saglik.jpg" alt="Sağlık Sigortası" class="img-fluid rounded-4 shadow-lg img-section" loading="lazy">
+                <picture>
+                    <source srcset="assets/images/saglik.webp" type="image/webp">
+                    <img src="assets/images/saglik.jpg" alt="Sağlık Sigortası" class="img-fluid rounded-4 shadow-lg img-section" width="700" height="467" loading="lazy" decoding="async">
+                </picture>
             </div>
             <div class="col-lg-6" data-aos="fade-left">
                 <span class="badge bg-danger bg-opacity-10 text-danger fs-6 mb-3 px-3 py-2 rounded-pill">
@@ -561,7 +584,16 @@ require_once 'includes/header.php';
             foreach ($partners as $partner): ?>
             <div class="partners-grid-item">
                 <?php if (!empty($partner['logo'])): ?>
-                    <img src="<?php echo SITE_URL . '/' . htmlspecialchars($partner['logo'], ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars($partner['name'], ENT_QUOTES, 'UTF-8'); ?>" class="partner-logo" loading="lazy">
+                    <?php
+                    $logoPath = $partner['logo'];
+                    $webpPath = preg_replace('/\.(jpg|jpeg|png)$/i', '.webp', $logoPath);
+                    $webpFull = SITE_URL . '/' . htmlspecialchars($webpPath, ENT_QUOTES, 'UTF-8');
+                    $jpgFull  = SITE_URL . '/' . htmlspecialchars($logoPath, ENT_QUOTES, 'UTF-8');
+                    ?>
+                    <picture>
+                        <source srcset="<?php echo $webpFull; ?>" type="image/webp">
+                        <img src="<?php echo $jpgFull; ?>" alt="<?php echo htmlspecialchars($partner['name'], ENT_QUOTES, 'UTF-8'); ?>" class="partner-logo" width="160" height="80" loading="lazy" decoding="async">
+                    </picture>
                 <?php else: ?>
                     <span class="partner-name-text"><?php echo htmlspecialchars($partner['name'], ENT_QUOTES, 'UTF-8'); ?></span>
                 <?php endif; ?>
@@ -615,8 +647,8 @@ require_once 'includes/header.php';
             <div class="swiper-button-next testimonial-nav-btn"><i class="fa-solid fa-chevron-right"></i></div>
         </div>
     </div>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"></noscript>
     <style>
     .testimonialSwiper { padding-bottom: 50px; }
     .testimonialSwiper .swiper-slide { height: auto; }
@@ -629,18 +661,38 @@ require_once 'includes/header.php';
     @media (max-width: 767px) { .testimonial-nav-btn { display: none !important; } }
     </style>
     <script>
-    new Swiper('.testimonialSwiper', {
-        slidesPerView: 1,
-        spaceBetween: 24,
-        loop: <?php echo count($testimonials) > 3 ? 'true' : 'false'; ?>,
-        autoplay: { delay: 5000, disableOnInteraction: false },
-        pagination: { el: '.testimonialSwiper .swiper-pagination', clickable: true },
-        navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
-        breakpoints: {
-            768: { slidesPerView: 2 },
-            992: { slidesPerView: 3 }
+    /* Swiper: sadece testimonials görünüme girerken yükle (TBT sıfır) */
+    (function() {
+        var swiperLoop = <?php echo count($testimonials) > 3 ? 'true' : 'false'; ?>;
+        var loaded = false;
+        function initSwiper() {
+            if (loaded) return; loaded = true;
+            new Swiper('.testimonialSwiper', {
+                slidesPerView: 1, spaceBetween: 24, loop: swiperLoop,
+                autoplay: { delay: 5000, disableOnInteraction: false },
+                pagination: { el: '.testimonialSwiper .swiper-pagination', clickable: true },
+                navigation: { nextEl: '.swiper-button-next', prevEl: '.swiper-button-prev' },
+                breakpoints: { 768: { slidesPerView: 2 }, 992: { slidesPerView: 3 } }
+            });
         }
-    });
+        function loadSwiper() {
+            if (typeof Swiper !== 'undefined') { initSwiper(); return; }
+            var s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js';
+            s.onload = initSwiper;
+            document.head.appendChild(s);
+        }
+        var el = document.querySelector('.testimonialSwiper');
+        if (!el) return;
+        if ('IntersectionObserver' in window) {
+            var io = new IntersectionObserver(function(e) {
+                if (e[0].isIntersecting) { io.disconnect(); loadSwiper(); }
+            }, { rootMargin: '300px' });
+            io.observe(el);
+        } else {
+            setTimeout(loadSwiper, 800);
+        }
+    })();
     </script>
 </section>
 <?php endif; ?>
